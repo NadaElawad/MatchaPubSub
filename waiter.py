@@ -109,7 +109,12 @@ def main():
                 continue
 
             if msg.error():
-                if msg.error().code() == KafkaError._PARTITION_EOF:
+                if msg.error().code() in (
+                    KafkaError._PARTITION_EOF,
+                    KafkaError.UNKNOWN_TOPIC_OR_PART,
+                    KafkaError._UNKNOWN_TOPIC,
+                ):
+                    time.sleep(0.5)
                     continue
                 raise KafkaException(msg.error())
 

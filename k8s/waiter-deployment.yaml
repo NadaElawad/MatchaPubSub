@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matcha-waiter
+  labels:
+    app: matcha-waiter
+spec:
+  replicas: 1 # Start with 1 Solo Waiter
+  selector:
+    matchLabels:
+      app: matcha-waiter
+  template:
+    metadata:
+      labels:
+        app: matcha-waiter
+    spec:
+      containers:
+        - name: waiter
+          image: matcha-waiter:latest
+          imagePullPolicy: IfNotPresent # Uses the locally built image
+          args:
+            - "--bootstrap-server"
+            - "host.docker.internal:9094" # Connects to Kafka via K8S advertised listener
+            - "--prep-time"
+            - "2.0"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
