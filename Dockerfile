@@ -6,9 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy waiter code
-COPY waiter.py .
+# Copy application code
+COPY waiter.py client.py ./
 
-# Run with python -u (unbuffered) so logs stream in real time to kubectl logs
-ENTRYPOINT ["python", "-u", "waiter.py"]
-CMD ["--bootstrap-server", "kafka:9092"]
+# Default to running the waiter service
+CMD ["python", "-u", "waiter.py"]

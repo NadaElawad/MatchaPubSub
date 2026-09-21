@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cafe-config
+  labels:
+    app: matcha-cafe
+data:
+  # Shared café network & topic configurations
+  BOOTSTRAP_SERVER: "host.docker.internal:9094"
+  ORDERS_TOPIC: "matcha-orders"
+  READY_TOPIC: "matcha-ready"
+  PREP_TIME: "1.5"

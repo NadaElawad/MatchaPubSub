@@ -12,12 +12,15 @@ Role:
 
 import argparse
 import json
+import os
 import random
 import sys
 import time
 import uuid
 from datetime import datetime, timezone
 from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
+
+CUSTOMERS = ["Maya", "Kenji", "Liam", "Zara", "Amina", "Oliver", "Chloe", "Sam", "Hossam"]
 
 
 class Color:
@@ -90,34 +93,44 @@ def main():
     parser.add_argument("--timeout", type=int, default=60, help="Max wait time in seconds")
     args = parser.parse_args()
 
-    # Determine order details (interactive if name/drink not passed)
+    bootstrap_server = os.environ.get("BOOTSTRAP_SERVER", args.bootstrap_server)
+    orders_topic = os.environ.get("ORDERS_TOPIC", args.orders_topic)
+    ready_topic = os.environ.get("READY_TOPIC", args.ready_topic)
+
+    # Determine order details (interactive if TTY, otherwise randomized/env-driven)
     if args.name is None and args.drink is None:
-        name, drink, milk, sweetness = prompt_user_order()
+        if sys.stdin.isatty():
+            name, drink, milk, sweetness = prompt_user_order()
+        else:
+            name = os.environ.get("CUSTOMER_NAME", random.choice(CUSTOMERS))
+            drink = os.environ.get("CUSTOMER_DRINK", random.choice(MENU))
+            milk = os.environ.get("CUSTOMER_MILK", random.choice(MILKS))
+            sweetness = os.environ.get("CUSTOMER_SWEETNESS", random.choice(SWEETNESS_LEVELS))
     else:
-        name = args.name or "Customer"
-        drink = args.drink or random.choice(MENU)
-        milk = args.milk
-        sweetness = args.sweetness
+        name = args.name or os.environ.get("CUSTOMER_NAME", "Customer")
+        drink = args.drink or os.environ.get("CUSTOMER_DRINK", random.choice(MENU))
+        milk = args.milk or os.environ.get("CUSTOMER_MILK", "Oat Milk")
+        sweetness = args.sweetness or os.environ.get("CUSTOMER_SWEETNESS", "50%")
 
     order_id = f"ORD-{random.randint(1000, 9999)}"
 
     # 1. Initialize Producer to submit the order
-    producer = Producer({"bootstrap.servers": args.bootstrap_server})
+    producer = Producer({"bootstrap.servers": bootstrap_server})
 
     # 2. Initialize Consumer to listen at the pickup counter
     # We use a unique ad-hoc consumer group for this customer so it independently receives broadcasts
     client_group = f"customer-{order_id}-{uuid.uuid4().hex[:4]}"
     consumer = Consumer({
-        "bootstrap.servers": args.bootstrap_server,
+        "bootstrap.servers": bootstrap_server,
         "group.id": client_group,
         "auto.offset.reset": "earliest",
         "enable.auto.commit": True,
     })
 
     # Subscribe to the pickup counter topic
-    consumer.subscribe([args.ready_topic])
+    consumer.subscribe([ready_topic])
 
-    # 3. Submit Order Event to 'matcha-orders'
+    # 3. Submit Order Event to orders topic
     order_event = {
         "order_id": order_id,
         "client_name": name,
@@ -137,13 +150,13 @@ def main():
 
     # Produce with key=order_id
     producer.produce(
-        topic=args.orders_topic,
+        topic=orders_topic,
         key=order_id.encode("utf-8"),
         value=json.dumps(order_event).encode("utf-8"),
     )
     producer.flush()
 
-    print(f"\n{Color.YELLOW}⏳ {name} is waiting by the pickup counter (listening to '{args.ready_topic}')...{Color.RESET}\n")
+    print(f"\n{Color.YELLOW}⏳ {name} is waiting by the pickup counter (listening to '{ready_topic}')...{Color.RESET}\n")
 
     # 4. Wait for our order to be called on 'matcha-ready'
     start_time = time.time()
@@ -192,6 +205,7 @@ def main():
 
         if not order_received:
             print(f"{Color.RED}⏰ Waited {args.timeout}s, but order was not called. The waiter might be busy!{Color.RESET}")
+            sys.exit(1)
 
     except KeyboardInterrupt:
         print(f"\n{Color.YELLOW}{name} stepped away from the counter.{Color.RESET}")

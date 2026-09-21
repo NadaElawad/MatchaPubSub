@@ -1,24 +1,24 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: matcha-waiter
+  name: customer-rush
   labels:
-    app: matcha-waiter
+    app: customer-rush
 spec:
-  replicas: 1 # Start with 1 Solo Waiter
-  selector:
-    matchLabels:
-      app: matcha-waiter
+  completions: 3  # 3 total customers served
+  parallelism: 3  # 3 customers arrive simultaneously
+  backoffLimit: 2 # Allow up to 2 retries if needed
   template:
     metadata:
       labels:
-        app: matcha-waiter
+        app: matcha-customer
     spec:
+      restartPolicy: Never
       containers:
-        - name: waiter
+        - name: customer
           image: matcha-cafe:latest
           imagePullPolicy: IfNotPresent
-          command: ["python", "-u", "waiter.py"]
+          command: ["python", "-u", "client.py"]
           envFrom:
             - configMapRef:
                 name: cafe-config

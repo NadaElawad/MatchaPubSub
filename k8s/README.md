@@ -1,20 +1,12 @@
 # ☸️ Running MatchaPubSub on Kubernetes
 
-This guide walks you through deploying the **Matcha Waiter Service** as a self-healing, scalable **Deployment** in Kubernetes.
+This guide walks you through deploying the **Matcha Waiter Service**, **Customer Jobs**, **CronJobs**, and **ConfigMaps** in Kubernetes.
 
 ---
 
-## 1. Enable Kubernetes on Your Mac (One-Time Setup)
+## 1. Verify Kubernetes Cluster
 
-Docker Desktop includes a full single-node Kubernetes cluster that can be turned on with one toggle:
-
-1. Open the **Docker Desktop** application on your Mac.
-2. Click the **⚙️ (Settings)** icon in the top right.
-3. In the left navigation menu, click **Kubernetes**.
-4. Check the box: **☑️ Enable Kubernetes**.
-5. Click **Apply & restart** (it will take ~1–2 minutes to download and start the cluster).
-
-To verify your cluster is running:
+Ensure your cluster is running:
 ```bash
 kubectl get nodes
 ```
@@ -22,14 +14,18 @@ kubectl get nodes
 
 ---
 
-## 2. Deploy the Waiter to Kubernetes
+## 2. Deploy Café Configuration & Waiter Service
 
-Apply the Deployment manifest:
+Deploy the shared ConfigMap and the Waiter Deployment:
 ```bash
+# 1. Shared Café Configuration (topics, prep time, servers)
+kubectl apply -f k8s/cafe-configmap.yaml
+
+# 2. Waiter Service (Deployment with 1 replica)
 kubectl apply -f k8s/waiter-deployment.yaml
 ```
 
-### Inspect the Running Waiter Pod:
+### Inspect the Running Waiter:
 ```bash
 # Check pod status
 kubectl get pods -l app=matcha-waiter
@@ -42,36 +38,76 @@ kubectl logs -f deployment/matcha-waiter
 
 ## 3. The Kubernetes Experiments 🧪
 
-### Experiment A: Order from the Mac, Brew in Kubernetes!
-Open a separate terminal and place an order:
+### Experiment A: Batch Customers using a Kubernetes `Job` 👥
+Deploy 3 customer pods simultaneously:
 ```bash
-source .venv/bin/activate
-python3 client.py --name "Nada" --drink "Iced Ceremonial Matcha Latte"
+kubectl apply -f k8s/customer-job.yaml
 ```
-👀 Watch your Kubernetes waiter pod logs: it will sift the matcha, whisk it, and broadcast the ready event back to your Mac client!
+Watch the customer pods spawn, order, wait for their drinks, and complete:
+```bash
+kubectl get pods -l app=matcha-customer
+```
+You will see:
+```text
+NAME                   READY   STATUS      RESTARTS   AGE
+customer-rush-448xd    0/1     Completed   0          9s
+customer-rush-c6k5g    0/1     Completed   0          9s
+customer-rush-s8bhj    0/1     Completed   0          9s
+```
+View one of the customer's logs to see them order and pick up their drink:
+```bash
+kubectl logs job/customer-rush
+```
+
+Clean up the finished job when done:
+```bash
+kubectl delete -f k8s/customer-job.yaml
+```
 
 ---
 
-### Experiment B: Self-Healing (Simulate a Crash)
-What happens if a waiter pod crashes? Try deleting it:
+### Experiment B: Scheduled Regulars using a `CronJob` ⏰
+Deploy a recurring customer that walks in every 1 minute:
 ```bash
-# Get the pod name
-kubectl get pods
-
-# Kill the pod
-kubectl delete pod <pod-name>
+kubectl apply -f k8s/customer-cronjob.yaml
 ```
-Run `kubectl get pods` immediately: Kubernetes will have automatically created a brand-new waiter pod within seconds. **Zero downtime.**
+List active cronjobs:
+```bash
+kubectl get cronjobs
+```
+Watch the cron scheduler spawn fresh customer pods periodically:
+```bash
+kubectl get jobs,pods -w
+```
+Delete the CronJob when finished testing:
+```bash
+kubectl delete -f k8s/customer-cronjob.yaml
+```
 
 ---
 
-### Experiment C: Scale the Waiters During a Rush!
+### Experiment C: Update Settings Dynamically with `ConfigMap` 📋
+Want to change the waiter's brew speed from 1.5 seconds to 0.5 seconds?
+Edit the ConfigMap:
+```bash
+kubectl edit configmap cafe-config
+```
+*(Change `PREP_TIME: "0.5"` and save)*
+
+Restart the deployment to pick up the new configuration:
+```bash
+kubectl rollout restart deployment matcha-waiter
+```
+
+---
+
+### Experiment D: Scale the Waiters During a Rush! 🧑‍🍳🧑‍🍳🧑‍🍳
 Scale from 1 Solo Waiter to 3 concurrent Baristas:
 ```bash
 kubectl scale deployment matcha-waiter --replicas=3
 ```
-Now run:
+Now trigger another customer rush:
 ```bash
-python3 rush.py --count 6
+kubectl apply -f k8s/customer-job.yaml
 ```
-Because Kafka's consumer group protocol automatically rebalances the 3 partitions among the 3 pods, all 3 Kubernetes waiters will brew the 6 drinks simultaneously in parallel!
+Kafka automatically balances the 3 partitions among the 3 waiter pods, brewing all drinks in parallel!

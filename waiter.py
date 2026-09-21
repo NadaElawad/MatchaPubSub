@@ -11,6 +11,7 @@ Role:
 
 import argparse
 import json
+import os
 import signal
 import sys
 import time
@@ -63,9 +64,14 @@ def main():
     )
     args = parser.parse_args()
 
+    bootstrap_server = os.environ.get("BOOTSTRAP_SERVER", args.bootstrap_server)
+    orders_topic = os.environ.get("ORDERS_TOPIC", args.orders_topic)
+    ready_topic = os.environ.get("READY_TOPIC", args.ready_topic)
+    prep_time = float(os.environ.get("PREP_TIME", args.prep_time))
+
     # Consumer configuration: single consumer in matcha-waiter-group
     consumer_conf = {
-        "bootstrap.servers": args.bootstrap_server,
+        "bootstrap.servers": bootstrap_server,
         "group.id": "matcha-waiter-group",
         "auto.offset.reset": "earliest",
         "enable.auto.commit": False,  # Manual commit after drink is prepared!
@@ -73,7 +79,7 @@ def main():
 
     # Producer configuration: sends ready events
     producer_conf = {
-        "bootstrap.servers": args.bootstrap_server,
+        "bootstrap.servers": bootstrap_server,
         "client.id": "matcha-waiter-producer",
     }
 
@@ -87,17 +93,17 @@ def main():
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
 
-    consumer.subscribe([args.orders_topic])
+    consumer.subscribe([orders_topic])
 
     print(f"\n{Color.BOLD}{Color.GREEN}╭──────────────────────────────────────────────────────────╮{Color.RESET}")
     print(f"{Color.BOLD}{Color.GREEN}│  🍵 MATCHA CAFÉ - SOLO WAITER (BARISTA) READY            │{Color.RESET}")
-    print(f"{Color.BOLD}{Color.GREEN}│  Kafka Server : {args.bootstrap_server:<40} │{Color.RESET}")
-    print(f"{Color.BOLD}{Color.GREEN}│  Orders Topic : {args.orders_topic:<40} │{Color.RESET}")
-    print(f"{Color.BOLD}{Color.GREEN}│  Ready Topic  : {args.ready_topic:<40} │{Color.RESET}")
+    print(f"{Color.BOLD}{Color.GREEN}│  Kafka Server : {bootstrap_server:<40} │{Color.RESET}")
+    print(f"{Color.BOLD}{Color.GREEN}│  Orders Topic : {orders_topic:<40} │{Color.RESET}")
+    print(f"{Color.BOLD}{Color.GREEN}│  Ready Topic  : {ready_topic:<40} │{Color.RESET}")
     print(f"{Color.BOLD}{Color.GREEN}╰──────────────────────────────────────────────────────────╯{Color.RESET}")
     print(f"{Color.DIM}Waiting for customers to place orders... (Press Ctrl+C to close shop)\n{Color.RESET}")
 
-    step_delay = args.prep_time / 3.0
+    step_delay = prep_time / 3.0
     orders_served = 0
 
     try:
