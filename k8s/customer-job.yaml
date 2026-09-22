@@ -16,7 +16,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: customer
-          image: matcha-cafe:latest
+          image: matcha-cafe:v2
           imagePullPolicy: IfNotPresent
           command: ["python", "-u", "client.py"]
           envFrom:

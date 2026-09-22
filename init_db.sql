@@ -1,0 +1,50 @@
+-- Schema for Matcha Café Database
+
+-- 1. Products Table (What we offer & prices)
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    category VARCHAR(50) NOT NULL DEFAULT 'Drink',
+    price DECIMAL(6, 2) NOT NULL,
+    description TEXT,
+    in_stock BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Orders Table (Records of every order)
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    order_id VARCHAR(50) UNIQUE NOT NULL,
+    customer_name VARCHAR(100) NOT NULL,
+    drink_name VARCHAR(100) NOT NULL,
+    milk VARCHAR(50),
+    sweetness VARCHAR(50),
+    price DECIMAL(6, 2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'READY',
+    prepared_by VARCHAR(100),
+    ordered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    ready_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Customers Table (Preferences, spending & loyalty aggregated by CronJob)
+CREATE TABLE IF NOT EXISTS customers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    favorite_drink VARCHAR(100),
+    preferred_milk VARCHAR(50),
+    preferred_sweetness VARCHAR(50),
+    total_spent DECIMAL(10, 2) DEFAULT 0.00,
+    total_orders INT DEFAULT 0,
+    last_visit TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Seed initial products menu
+INSERT INTO products (name, category, price, description) VALUES
+    ('Iced Ceremonial Matcha Latte', 'Drink', 6.50, 'Stone-ground Uji matcha whisked over cold milk and artisan ice'),
+    ('Hot Uji Matcha Latte', 'Drink', 6.00, 'Steamed milk with vibrant green ceremonial matcha foam'),
+    ('Strawberry Matcha Float', 'Drink', 7.50, 'House-made strawberry purée layered with oat milk and cold-whisked matcha'),
+    ('Matcha Espresso Fusion', 'Drink', 6.75, 'A double shot of espresso floating over iced layered matcha latte'),
+    ('Matcha Soft Serve', 'Dessert', 4.50, 'Creamy Hokkaido-style matcha soft serve ice cream'),
+    ('Matcha Basque Cheesecake', 'Pastry', 8.00, 'Rich, caramelized crust with an oozing matcha center')
+ON CONFLICT (name) DO UPDATE SET price = EXCLUDED.price;

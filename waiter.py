@@ -17,6 +17,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
+from db import get_product_price, log_order
 
 
 class Color:
@@ -156,6 +157,9 @@ def main():
             time.sleep(step_delay)
             print(f"   {Color.GREEN}🥛 Step 3:{Color.RESET} Pouring fresh {milk} and ice into cup...")
 
+            # Fetch price from products table
+            price = get_product_price(drink)
+
             # Construct ready event
             ready_event = {
                 "order_id": order_id,
@@ -163,6 +167,7 @@ def main():
                 "drink": drink,
                 "milk": milk,
                 "sweetness": sweetness,
+                "price": price,
                 "status": "READY",
                 "prepared_by": "Kaito (Solo Waiter)",
                 "ready_at": datetime.now(timezone.utc).isoformat(),
@@ -170,16 +175,19 @@ def main():
 
             # Publish to 'matcha-ready' with key=order_id
             producer.produce(
-                topic=args.ready_topic,
+                topic=ready_topic,
                 key=order_id.encode("utf-8"),
                 value=json.dumps(ready_event).encode("utf-8"),
             )
             producer.flush()
 
+            # Record into PostgreSQL order_logs table
+            log_order(ready_event)
+
             # Commit offset to Kafka to confirm order is fulfilled
             consumer.commit(msg)
 
-            print(f"   {Color.BOLD}{Color.YELLOW}🔔 DING! Order {order_id} for {client_name} is READY at the counter!{Color.RESET}\n")
+            print(f"   {Color.BOLD}{Color.YELLOW}🔔 DING! Order {order_id} for {client_name} (${price:.2f}) is READY at the counter!{Color.RESET}\n")
 
     except KeyboardInterrupt:
         pass

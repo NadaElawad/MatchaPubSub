@@ -5,8 +5,15 @@ metadata:
   labels:
     app: matcha-cafe
 data:
-  # Shared café network & topic configurations
+  # Kafka cluster configuration
   BOOTSTRAP_SERVER: "host.docker.internal:9094"
   ORDERS_TOPIC: "matcha-orders"
   READY_TOPIC: "matcha-ready"
   PREP_TIME: "1.5"
+
+  # PostgreSQL database configuration
+  DB_HOST: "host.docker.internal"
+  DB_PORT: "5432"
+  DB_NAME: "matcha_cafe"
+  DB_USER: "barista"
+  DB_PASSWORD: "matchapassword"

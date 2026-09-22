@@ -82,17 +82,34 @@ Watch the customers place orders at once, wait at the counter, and observe the s
 
 | File | Description |
 | :--- | :--- |
-| **`docker-compose.yml`** | Kafka broker (KRaft mode) + Kafka UI dashboard |
-| **`waiter.py`** | Solo barista worker: consumes orders, brews matcha, publishes ready notifications, commits offsets |
+| **`docker-compose.yml`** | Kafka broker (KRaft mode) + Kafka UI dashboard + PostgreSQL 16 database |
+| **`init_db.sql`** | Database schema initialization (`products`, `customers`, `orders`) |
+| **`db.py`** | PostgreSQL database layer: real-time order logging, dynamic preference updates |
+| **`dashboard.py`** | Terminal UI: live analytics of products, revenue, and customer preferences |
+| **`waiter.py`** | Solo barista worker: consumes orders, brews matcha, records sales to DB, publishes ready notifications |
 | **`client.py`** | Customer CLI: places order, listens to pickup counter, matches `order_id` key |
 | **`rush.py`** | Concurrent multi-customer simulator to test queueing and backpressure |
-| **`requirements.txt`** | Python dependencies (`confluent-kafka`) |
+| **`k8s/`** | Kubernetes manifests (`waiter-deployment.yaml`, `customer-cronjob.yaml`, `cafe-configmap.yaml`) |
+| **`requirements.txt`** | Python dependencies (`confluent-kafka`, `psycopg2-binary`) |
 
 ---
 
-## 🧠 Key Kafka Concepts Demonstrated
+## 📊 Live Database & Analytics Dashboard
+
+Whenever a drink is brewed and served by the barista, the database transaction performs real-time updates:
+1. Records the completed transaction into the `orders` table.
+2. Upserts customer profile in the `customers` table (increments total spend, total order count, and updates favorite drink / milk / sweetness preferences dynamically based on order history).
+
+View the live café menu, customer loyalty profiles, and revenue at any time:
+```bash
+python3 dashboard.py
+```
+
+---
+
+## 🧠 Key Architecture Concepts Demonstrated
 
 1. **Consumer-Transform-Producer**: The waiter consumes from `matcha-orders`, transforms the state (brewing), and produces to `matcha-ready`.
-2. **Manual Offset Commit**: The waiter only commits offsets *after* a drink is successfully prepared and announced, guaranteeing zero lost orders.
-3. **Partition & Key Assignment**: Kafka distributes orders across partitions based on the hash of `order_id`.
-4. **Broadcast & Client-Side Filtering**: All customers listen to the counter topic (`matcha-ready`), but each customer only reacts to the message matching their own `order_id`.
+2. **Real-time Database Transactions**: Every completed order is immediately committed to PostgreSQL, maintaining live customer lifetime value and preference analytics.
+3. **Manual Offset Commit**: The waiter only commits offsets *after* a drink is successfully prepared, recorded in PostgreSQL, and announced, guaranteeing zero lost orders.
+4. **Kubernetes Integration**: Baristas run as scalable Deployments and regular commuters run as scheduled CronJobs communicating seamlessly with Kafka and PostgreSQL.
