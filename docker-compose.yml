@@ -52,6 +52,24 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+  order-api:
+    build: .
+    container_name: matcha-order-api
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    environment:
+      BOOTSTRAP_SERVER: kafka:29092
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: matcha_cafe
+      DB_USER: barista
+      DB_PASSWORD: matchapassword
+      ORDERS_TOPIC: matcha-orders
+      READY_TOPIC: matcha-ready
+    depends_on:
+      - kafka
+      - postgres
     networks:
       - kafka-net
 

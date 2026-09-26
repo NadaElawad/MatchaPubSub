@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
-from db import get_product_price, log_order
+from db import get_product_price, log_order, update_order_status
 
 
 class Color:
@@ -148,6 +148,9 @@ def main():
             print(f"{Color.BOLD}│ Drink    : {drink:<46}│{Color.RESET}")
             print(f"{Color.BOLD}│ Options  : {milk}, {sweetness} sweetness{' ' * max(0, 31 - len(milk) - len(sweetness))}│{Color.RESET}")
             print(f"{Color.BOLD}{Color.CYAN}╰──────────────────────────────────────────────────────────╯{Color.RESET}")
+
+            # Update database status to PREPARING
+            update_order_status(order_id, "PREPARING", prepared_by="Kaito (Solo Waiter)")
 
             # Simulate handcrafted matcha preparation steps
             time.sleep(step_delay)
