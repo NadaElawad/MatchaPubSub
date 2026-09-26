@@ -1833,10 +1833,12 @@
       transform: translateY(1px);
     }
 
-    .btn-scout-rush:disabled {
-      opacity: 0.65;
+    .btn-scout-rush:disabled,
+    .btn-scout-rush.btn-rush-full {
+      opacity: 0.60;
       cursor: not-allowed;
-      filter: grayscale(0.2);
+      filter: grayscale(0.5);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     .btn-scout-rush .rush-icon {
@@ -3740,14 +3742,41 @@
         if (!res.ok) return;
         const data = await res.json();
 
+        const occupied = data.occupied_count || 0;
+        const total = data.total_seats || 12;
+        const available = Math.max(0, total - occupied);
+        window._availableSeats = available;
+
         // Update occupancy badge
         const occEl = document.getElementById("messHallOccupancy");
         if (occEl) {
-          occEl.innerText = `${data.occupied_count} / ${data.total_seats} Seats Occupied`;
+          occEl.innerText = `${occupied} / ${total} Seats Occupied`;
+        }
+
+        // Dynamically update Simulate Scout Rush button based on physical seat availability
+        const rushBtn = document.getElementById("btnScoutRush");
+        if (rushBtn && !rushBtn.classList.contains("btn-loading")) {
+          const labelEl = rushBtn.querySelector(".rush-label");
+          if (available === 0) {
+            rushBtn.disabled = true;
+            rushBtn.classList.add("btn-rush-full");
+            if (labelEl) labelEl.innerText = "Table Full (12/12)";
+            rushBtn.title = "All 12 seats are currently occupied. Wait for cadets to finish dining.";
+          } else {
+            rushBtn.disabled = false;
+            rushBtn.classList.remove("btn-rush-full");
+            if (available < 5) {
+              if (labelEl) labelEl.innerText = `Simulate Rush (${available} left)`;
+              rushBtn.title = `Dispatch ${available} Scout${available > 1 ? 's' : ''} to fill remaining seats!`;
+            } else {
+              if (labelEl) labelEl.innerText = "Simulate Scout Rush!";
+              rushBtn.title = "Dispatch 5 Scouts to fill available dining seats!";
+            }
+          }
         }
 
         // Live Ambient Café Audio: update based on diners present
-        updateDinerAmbiance(data.occupied_count || 0);
+        updateDinerAmbiance(occupied);
 
         // Update live cup circulation
         if (data.cups) {
@@ -3904,48 +3933,71 @@
       }
     }
 
-    async function triggerScoutRush(count = 5) {
+    async function triggerScoutRush(defaultCount = 5) {
       const btn = document.getElementById("btnScoutRush");
+      const available = window._availableSeats !== undefined ? window._availableSeats : defaultCount;
+
+      if (available <= 0) {
+        showQuoteToast(
+          "Captain Levi",
+          "Special Operations Squad",
+          "“The table is full (12/12). No one eats standing up in this mess hall — wait for seats to clear.”",
+          "/images/characters/levi.webp"
+        );
+        return;
+      }
+
+      const countToOrder = Math.min(defaultCount, available);
       const origHtml = btn ? btn.innerHTML : "";
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<span class="rush-icon spin">⚔️</span> Calling Scouts...`;
+        btn.classList.add("btn-loading");
+        btn.innerHTML = `<span class="rush-icon spin">⚔️</span> Calling ${countToOrder} Scout${countToOrder > 1 ? 's' : ''}...`;
       }
       await ensureAudioContextRunning();
       playScoutFanfare();
       try {
-        const res = await fetch(`/restaurant/simulate-rush?count=${count}`, { method: "POST" });
+        const res = await fetch(`/restaurant/simulate-rush?count=${countToOrder}`, { method: "POST" });
         const data = await res.json();
-        
-        // Random inspirational quote from Scout leadership / veterans
-        const quotes = [
-          {
-            name: "Erwin Smith",
-            title: "Commander of Survey Corps",
-            quote: "“Dedicate your hearts! The Scout Regiment meal rush has begun — keep the ceremonial matcha flowing!”",
-            img: "/images/characters/erwin.webp"
-          },
-          {
-            name: "Captain Levi",
-            title: "Special Operations Squad",
-            quote: "“Don't spill a single drop on the clean mess table. Enjoy your matcha, cadets.”",
-            img: "/images/characters/levi.webp"
-          },
-          {
-            name: "Hange Zoë",
-            title: "Survey Corps Commander",
-            quote: "“Incredible! The antioxidant properties of ceremonial Uji matcha are simply astonishing!”",
-            img: "/images/characters/hange-zoe.webp"
-          },
-          {
-            name: "Sasha Braus",
-            title: "104th Training Corps",
-            quote: "“Matcha Basque Cheesecake and artisan pastries?! Quick, to the mess hall table!”",
-            img: "/images/characters/sasha-braus.webp"
-          }
-        ];
-        const q = quotes[Math.floor(Math.random() * quotes.length)];
-        showQuoteToast(q.name, q.title, q.quote, q.img);
+
+        if (data.count === 0) {
+          showQuoteToast(
+            "Captain Levi",
+            "Special Operations Squad",
+            data.message || "“Mess hall is full. Wait for seats to clear.”",
+            "/images/characters/levi.webp"
+          );
+        } else {
+          // Random inspirational quote from Scout leadership / veterans
+          const quotes = [
+            {
+              name: "Erwin Smith",
+              title: "Commander of Survey Corps",
+              quote: `“Dedicate your hearts! ${data.count} Scouts have arrived for rations — keep the ceremonial matcha flowing!”`,
+              img: "/images/characters/erwin.webp"
+            },
+            {
+              name: "Captain Levi",
+              title: "Special Operations Squad",
+              quote: "“Don't spill a single drop on the clean mess table. Enjoy your matcha, cadets.”",
+              img: "/images/characters/levi.webp"
+            },
+            {
+              name: "Hange Zoë",
+              title: "Survey Corps Commander",
+              quote: "“Incredible! The antioxidant properties of ceremonial Uji matcha are simply astonishing!”",
+              img: "/images/characters/hange-zoe.webp"
+            },
+            {
+              name: "Sasha Braus",
+              title: "104th Training Corps",
+              quote: "“Matcha Basque Cheesecake and artisan pastries?! Quick, grab the open seats!”",
+              img: "/images/characters/sasha-braus.webp"
+            }
+          ];
+          const q = quotes[Math.floor(Math.random() * quotes.length)];
+          showQuoteToast(q.name, q.title, q.quote, q.img);
+        }
 
         // Immediate live table refresh
         await pollActiveDiners();
@@ -3954,8 +4006,9 @@
       } finally {
         setTimeout(() => {
           if (btn) {
-            btn.disabled = false;
+            btn.classList.remove("btn-loading");
             btn.innerHTML = origHtml;
+            pollActiveDiners();
           }
         }, 1200);
       }

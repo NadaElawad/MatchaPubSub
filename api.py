@@ -604,13 +604,36 @@ def simulate_scout_rush(count: int = Query(default=5, ge=1, le=12)) -> dict[str,
     """Simulates a dining rush by creating concurrent orders for Scout Regiment cadets.
 
     Selects random cadets from the character pool and diverse items from the menu,
-    placing dine-in orders to dynamically occupy seats in the Mess Hall.
+    placing dine-in orders strictly constrained to the number of available seats
+    in the 12-seat Mess Hall so no cadets are served standing up without a seat.
     """
+    diners_state = db.get_active_diners()
+    occupied = diners_state.get("occupied_count", 0)
+    total_seats = diners_state.get("total_seats", 12)
+    available_seats = max(0, total_seats - occupied)
+
+    if available_seats == 0:
+        return {
+            "message": "Mess Hall is at full capacity (12/12 seats occupied). No seats available for a Scout rush.",
+            "count": 0,
+            "orders": [],
+            "available_seats": 0,
+            "occupied_count": occupied,
+            "total_seats": total_seats,
+        }
+
+    # Strictly limit orders to the number of physically available seats
+    actual_count = min(count, available_seats)
+
     rush_orders: list[dict[str, Any]] = []
     pool = getattr(db, "_AOT_CHARACTER_POOL", db.AOT_CHARACTERS) or db.AOT_CHARACTERS
-    sample_size = min(count, len(pool))
-    candidates = random.sample(pool, k=sample_size)
-    
+
+    # Filter out cadets who are already currently seated at the table
+    seated_names = {d.get("character_name") for d in diners_state.get("diners", [])}
+    available_pool = [c for c in pool if c.get("name") not in seated_names] or pool
+    sample_size = min(actual_count, len(available_pool))
+    candidates = random.sample(available_pool, k=sample_size)
+
     menu = db.get_menu()
     available_items = [p for p in menu if p.get("in_stock", True)] or [
         {"name": "Hot Uji Matcha Latte", "category": "Drink"},
@@ -637,9 +660,15 @@ def simulate_scout_rush(count: int = Query(default=5, ge=1, le=12)) -> dict[str,
             logger.warning("Simulate rush order failed for %s: %s", char.get("name"), exc)
 
     return {
-        "message": f"Scout Regiment meal rush triggered for {len(rush_orders)} cadets!",
+        "message": (
+            f"Scout Regiment meal rush triggered for {len(rush_orders)} cadet(s) "
+            f"({len(rush_orders)} of {available_seats} remaining seats filled)!"
+        ),
         "count": len(rush_orders),
         "orders": rush_orders,
+        "available_seats": available_seats - len(rush_orders),
+        "occupied_count": occupied + len(rush_orders),
+        "total_seats": total_seats,
     }
 
 
