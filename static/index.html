@@ -2730,8 +2730,8 @@
     <source src="/static/audio/click.wav?v=2" type="audio/wav">
   </audio>
   <audio id="audioAmbiance" loop preload="auto">
-    <source src="/static/audio/cafe_ambiance.m4a?v=2" type="audio/mp4">
-    <source src="/static/audio/cafe_ambiance.wav?v=2" type="audio/wav">
+    <source src="/static/audio/cafe_ambiance.m4a?v=3" type="audio/mp4">
+    <source src="/static/audio/cafe_ambiance.wav?v=3" type="audio/wav">
   </audio>
 
   <script>
@@ -2938,102 +2938,75 @@
       } catch (e) {}
     }
 
-    // 5. Ambient Kyoto Tea House Soundscape (Room Presence + Periodic Porcelain Clinks)
-    function ensureAmbianceNodes(ctx) {
-      if (ambianceMasterGain && ambianceNoiseNode) return;
+    // 5. Authentic Kyoto Tea House & Café Soundscape
+    // Multi-layered field recording featuring: real customer talking/murmur, barista steam wand hissing, ceramic dishware clatter & spoon stirring
+    let ambianceBuffer = null;
+    let ambianceBufferSource = null;
+
+    async function loadAmbianceBuffer(ctx) {
+      if (ambianceBuffer) return ambianceBuffer;
       try {
-        ambianceMasterGain = ctx.createGain();
-        ambianceMasterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        ambianceMasterGain.connect(ctx.destination);
-
-        const bufferLength = Math.max(128, ctx.sampleRate * 5);
-        const noiseBuffer = ctx.createBuffer(1, bufferLength, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
-          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.045;
-          b6 = white * 0.115926;
-        }
-
-        ambianceNoiseNode = ctx.createBufferSource();
-        ambianceNoiseNode.buffer = noiseBuffer;
-        ambianceNoiseNode.loop = true;
-
-        const roomFilter = ctx.createBiquadFilter();
-        roomFilter.type = "lowpass";
-        roomFilter.frequency.setValueAtTime(450, ctx.currentTime);
-        roomFilter.Q.setValueAtTime(1.0, ctx.currentTime);
-
-        ambianceNoiseNode.connect(roomFilter);
-        roomFilter.connect(ambianceMasterGain);
-        ambianceNoiseNode.start(0);
-      } catch (e) {}
+        const res = await fetch("/static/audio/cafe_ambiance.m4a?v=3");
+        const ab = await res.arrayBuffer();
+        ambianceBuffer = await ctx.decodeAudioData(ab);
+        return ambianceBuffer;
+      } catch (e) {
+        return null;
+      }
     }
 
-    function schedulePorcelainClink(ctx) {
-      if (!soundEnabled || currentDinerCount <= 0 || !ambianceMasterGain) return;
-      try {
-        const now = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const clinkFreq = 2300 + Math.random() * 1400;
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(clinkFreq, now);
-        gain.gain.setValueAtTime(0.04 + Math.random() * 0.03, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.25);
-      } catch (e) {}
-    }
-
-    function startCafeAmbiance(occupancy = 1) {
+    async function startCafeAmbiance(occupancy = 1) {
       if (!soundEnabled) return;
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      ensureAmbianceNodes(ctx);
-      const targetGain = Math.min(0.28, 0.10 + (occupancy * 0.015));
-      if (ambianceMasterGain) {
-        const now = ctx.currentTime;
-        ambianceMasterGain.gain.cancelScheduledValues(now);
-        ambianceMasterGain.gain.setValueAtTime(Math.max(0.0001, ambianceMasterGain.gain.value), now);
-        ambianceMasterGain.gain.linearRampToValueAtTime(targetGain, now + 1.2);
-      }
-      if (!ambianceClinkTimer) {
-        const loopClink = () => {
-          if (soundEnabled && currentDinerCount > 0) {
-            schedulePorcelainClink(ctx);
-            ambianceClinkTimer = setTimeout(loopClink, 3500 + Math.random() * 3500);
-          } else {
-            ambianceClinkTimer = null;
+      // Dynamic volume scaling based on number of seated diners
+      const targetVol = Math.min(0.85, 0.40 + (occupancy * 0.035));
+
+      // 1. Play real multi-layer audio via HTML5 loop element (seamless & native)
+      playHtmlAudioLoop("audioAmbiance", targetVol);
+
+      // 2. Also run through Web Audio graph for high-fidelity hardware mixing
+      try {
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'running') {
+          if (!ambianceMasterGain) {
+            ambianceMasterGain = ctx.createGain();
+            ambianceMasterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+            ambianceMasterGain.connect(ctx.destination);
           }
-        };
-        ambianceClinkTimer = setTimeout(loopClink, 2000);
-      }
-      playHtmlAudioLoop("audioAmbiance", targetGain);
+          const now = ctx.currentTime;
+          ambianceMasterGain.gain.cancelScheduledValues(now);
+          ambianceMasterGain.gain.setValueAtTime(Math.max(0.0001, ambianceMasterGain.gain.value), now);
+          ambianceMasterGain.gain.linearRampToValueAtTime(targetVol * 0.6, now + 1.2);
+
+          if (!ambianceBufferSource) {
+            const buf = await loadAmbianceBuffer(ctx);
+            if (buf && !ambianceBufferSource && soundEnabled && currentDinerCount > 0) {
+              ambianceBufferSource = ctx.createBufferSource();
+              ambianceBufferSource.buffer = buf;
+              ambianceBufferSource.loop = true;
+              ambianceBufferSource.connect(ambianceMasterGain);
+              ambianceBufferSource.start(0);
+            }
+          }
+        }
+      } catch (e) {}
+
       updateAudioToggleBtns();
     }
 
     function stopCafeAmbiance() {
-      if (ambianceClinkTimer) {
-        clearTimeout(ambianceClinkTimer);
-        ambianceClinkTimer = null;
-      }
-      if (ambianceMasterGain && _cafeAudioCtx) {
-        const now = _cafeAudioCtx.currentTime;
-        ambianceMasterGain.gain.cancelScheduledValues(now);
-        ambianceMasterGain.gain.setValueAtTime(ambianceMasterGain.gain.value, now);
-        ambianceMasterGain.gain.linearRampToValueAtTime(0.0001, now + 1.0);
-      }
+      // 1. Pause HTML5 audio
       pauseHtmlAudio("audioAmbiance");
+
+      // 2. Smoothly fade out Web Audio gain
+      if (ambianceMasterGain && _cafeAudioCtx) {
+        try {
+          const now = _cafeAudioCtx.currentTime;
+          ambianceMasterGain.gain.cancelScheduledValues(now);
+          ambianceMasterGain.gain.setValueAtTime(ambianceMasterGain.gain.value, now);
+          ambianceMasterGain.gain.linearRampToValueAtTime(0.0001, now + 1.0);
+        } catch (e) {}
+      }
+
       updateAudioToggleBtns();
     }
 
