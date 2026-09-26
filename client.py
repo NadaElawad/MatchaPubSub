@@ -1,45 +1,67 @@
 #!/usr/bin/env python3
-"""
-Matcha PubSub - Customer Client
+"""Matcha PubSub - Customer Client.
 
-Modes:
-1. API Mode (Production Default):
-   - Dynamically fetches the live menu, prices, and customizations from the Matcha Order API (PostgreSQL backed).
-   - Submits orders via HTTP POST /orders with server-side validation.
-   - Polls order status (PENDING -> PREPARING -> READY) without requiring direct Kafka broker access.
-2. Direct Kafka Mode (--direct-kafka):
-   - Directly produces to 'matcha-orders' and listens to 'matcha-ready'.
-   - Kept for low-level pub/sub demonstration and testing.
+Provides both HTTP API and direct Kafka client interfaces to place orders,
+poll fulfillment statuses, and simulate drinking and cup return workflows.
 """
+
+from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
+import logging
 import os
 import random
 import sys
 import time
+from typing import Any, Tuple
 import uuid
-from datetime import datetime, timezone
 
 try:
     import requests
 except ImportError:
     requests = None
 
-# Fallback presets when offline or in standalone Kafka mode
-FALLBACK_CUSTOMERS = ["Maya", "Kenji", "Liam", "Zara", "Amina", "Oliver", "Chloe", "Sam", "Hossam"]
-FALLBACK_MENU = [
+# ---------------------------------------------------------------------------
+# Logging Configuration
+# ---------------------------------------------------------------------------
+logger = logging.getLogger("matcha.client")
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(
+        logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
+    )
+    logger.addHandler(_handler)
+    logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
+
+
+# ---------------------------------------------------------------------------
+# Presets & Fallback Catalog
+# ---------------------------------------------------------------------------
+FALLBACK_CUSTOMERS: list[str] = [
+    "Maya", "Kenji", "Liam", "Zara", "Amina", "Oliver", "Chloe", "Sam", "Hossam"
+]
+
+FALLBACK_MENU: list[dict[str, Any]] = [
     {"name": "Iced Ceremonial Matcha Latte", "price": 6.50, "category": "Drink"},
     {"name": "Hot Uji Matcha Latte", "price": 6.00, "category": "Drink"},
     {"name": "Strawberry Matcha Float", "price": 7.50, "category": "Drink"},
     {"name": "Matcha Espresso Fusion", "price": 6.75, "category": "Drink"},
     {"name": "Matcha Soft Serve", "price": 4.50, "category": "Dessert"},
 ]
-FALLBACK_MILKS = ["Oat Milk", "Almond Milk", "Whole Milk", "Soy Milk"]
-FALLBACK_SWEETNESS = ["0% (Unsweetened)", "25%", "50%", "75%", "100%"]
+
+FALLBACK_MILKS: list[str] = ["Oat Milk", "Almond Milk", "Whole Milk", "Soy Milk"]
+FALLBACK_SWEETNESS: list[str] = ["0% (Unsweetened)", "25%", "50%", "75%", "100%"]
+
+# Exported aliases for rush.py and external scripts
+MENU: list[str] = [item["name"] for item in FALLBACK_MENU]
+MILKS: list[str] = list(FALLBACK_MILKS)
+SWEETNESS_LEVELS: list[str] = list(FALLBACK_SWEETNESS)
 
 
 class Color:
+    """Terminal ANSI escape codes for client interactions."""
     GREEN = "\033[92m"
     CYAN = "\033[96m"
     YELLOW = "\033[93m"
@@ -50,8 +72,15 @@ class Color:
     RESET = "\033[0m"
 
 
-def fetch_live_catalog(api_url):
-    """Fetch live menu and customization options from the Order API."""
+def fetch_live_catalog(api_url: str) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    """Fetches live menu items and customization options from the Order API.
+
+    Args:
+        api_url: Base URL of the Matcha Order API service.
+
+    Returns:
+        tuple[list[dict[str, Any]], list[str], list[str]]: Products, milks, and sweetness levels.
+    """
     if not requests:
         return FALLBACK_MENU, FALLBACK_MILKS, FALLBACK_SWEETNESS
 
@@ -64,14 +93,27 @@ def fetch_live_catalog(api_url):
             sweetness = data.get("available_sweetness", FALLBACK_SWEETNESS)
             if products:
                 return products, milks, sweetness
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Could not fetch live catalog from %s: %s", api_url, exc)
 
     return FALLBACK_MENU, FALLBACK_MILKS, FALLBACK_SWEETNESS
 
 
-def prompt_user_order(menu, milks, sweetness_levels):
-    """Interactive CLI menu populated dynamically from database products."""
+def prompt_user_order(
+    menu: list[dict[str, Any]],
+    milks: list[str],
+    sweetness_levels: list[str],
+) -> tuple[str, str, str, str]:
+    """Prompts the user interactively in the terminal to configure their order.
+
+    Args:
+        menu: Product list.
+        milks: Allowed milk choices.
+        sweetness_levels: Allowed sweetness choices.
+
+    Returns:
+        tuple[str, str, str, str]: (customer_name, drink, milk, sweetness)
+    """
     print(f"\n{Color.BOLD}{Color.GREEN}🍵 Welcome to the Matcha Café!{Color.RESET}")
     name = input(f"{Color.CYAN}What is your name? {Color.RESET}").strip() or "Guest"
 
@@ -109,10 +151,26 @@ def prompt_user_order(menu, milks, sweetness_levels):
     return name, drink, milk, sweetness
 
 
-def run_api_client(api_url, name, drink, milk, sweetness, timeout=60):
-    """Production path: Communicates with FastAPI Order Service via HTTP."""
+def run_api_client(
+    api_url: str,
+    name: str,
+    drink: str,
+    milk: str,
+    sweetness: str,
+    timeout: float = 60.0,
+) -> None:
+    """Submits order through HTTP Order API and polls status.
+
+    Args:
+        api_url: Base Order API endpoint.
+        name: Customer name.
+        drink: Target drink item.
+        milk: Milk option.
+        sweetness: Sweetness option.
+        timeout: Maximum seconds to wait for fulfillment.
+    """
     if not requests:
-        print(f"{Color.RED}Error: 'requests' package is required for API mode. Run: pip install requests{Color.RESET}")
+        print(f"{Color.RED}Error: 'requests' package is required for API mode.{Color.RESET}")
         sys.exit(1)
 
     payload = {
@@ -127,8 +185,7 @@ def run_api_client(api_url, name, drink, milk, sweetness, timeout=60):
     try:
         resp = requests.post(f"{api_url}/orders", json=payload, timeout=5.0)
     except requests.exceptions.ConnectionError:
-        print(f"{Color.RED}❌ Could not connect to Order API at {api_url}. Is the API service running?{Color.RESET}")
-        print(f"{Color.YELLOW}💡 Tip: Start the API with 'python3 api.py' or use '--direct-kafka' flag.{Color.RESET}")
+        print(f"{Color.RED}❌ Could not connect to Order API at {api_url}. Is the service running?{Color.RESET}")
         sys.exit(1)
 
     if resp.status_code != 201:
@@ -147,7 +204,6 @@ def run_api_client(api_url, name, drink, milk, sweetness, timeout=60):
     print(f"{Color.BOLD}│ Price    : ${price:<45.2f}│{Color.RESET}")
     print(f"{Color.BOLD}│ Status   : {Color.MAGENTA}{order_info['status']:<46}{Color.RESET}{Color.BOLD}│{Color.RESET}")
     print(f"{Color.BOLD}{Color.GREEN}╰──────────────────────────────────────────────────────────╯{Color.RESET}")
-
     print(f"\n{Color.YELLOW}⏳ {name} is waiting for order status updates via API...{Color.RESET}\n")
 
     start_time = time.time()
@@ -181,28 +237,37 @@ def run_api_client(api_url, name, drink, milk, sweetness, timeout=60):
                     print(f"{Color.CYAN}🍽️ {name} finished the drink and returned {Color.MAGENTA}{cup_code}{Color.RESET}{Color.CYAN} to the dishwasher counter!{Color.RESET}\n")
                     try:
                         requests.post(f"{api_url}/cups/{cup_code}/return?customer_name={name}", timeout=3.0)
-                    except Exception as e:
-                        print(f"[Client Warning] Could not notify cup return via API: {e}")
+                    except Exception as ret_err:
+                        logger.warning("Could not notify cup return via API: %s", ret_err)
                     return
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Order polling exception: %s", exc)
 
     print(f"{Color.RED}⏰ Order wait timeout exceeded ({timeout}s). Barista is still crafting your drink.{Color.RESET}")
 
 
-def run_direct_kafka_client(bootstrap_server, orders_topic, ready_topic, name, drink, milk, sweetness, timeout=60):
-    """Direct Kafka fallback path."""
-    from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
+def run_direct_kafka_client(
+    bootstrap_server: str,
+    orders_topic: str,
+    ready_topic: str,
+    name: str,
+    drink: str,
+    milk: str,
+    sweetness: str,
+    timeout: float = 60.0,
+) -> None:
+    """Direct Kafka communication fallback path."""
+    from confluent_kafka import Consumer, KafkaError, KafkaException, Producer
 
     order_id = f"ORD-{random.randint(1000, 9999)}"
-
-    producer = Producer({"bootstrap.servers": bootstrap_server})
+    producer = Producer({"bootstrap.servers": bootstrap_server, "broker.address.family": "v4"})
     client_group = f"customer-{order_id}-{uuid.uuid4().hex[:4]}"
     consumer = Consumer({
         "bootstrap.servers": bootstrap_server,
         "group.id": client_group,
         "auto.offset.reset": "earliest",
         "enable.auto.commit": True,
+        "broker.address.family": "v4",
     })
     consumer.subscribe([ready_topic])
 
@@ -254,11 +319,8 @@ def run_direct_kafka_client(bootstrap_server, orders_topic, ready_topic, name, d
                 print(f"{Color.GREEN}   Ready Drink : {drink} ({milk}, {sweetness}){Color.RESET}")
                 print(f"\n{Color.BOLD}🍵 {name} picked up the matcha in {Color.MAGENTA}{cup_code}{Color.RESET}! Enjoy! 😋✨\n")
 
-                # Simulate drinking
-                print(f"{Color.DIM}☕ {name} is sipping matcha at the café table...{Color.RESET}")
                 time.sleep(2.0)
 
-                # Return cup via Kafka returns topic
                 returns_topic = "matcha-cup-returns"
                 print(f"\n{Color.CYAN}🍽️ {name} finished the drink and returned {Color.MAGENTA}{cup_code}{Color.RESET}{Color.CYAN} to the dishwasher counter!{Color.RESET}\n")
                 return_event = {
@@ -280,50 +342,37 @@ def run_direct_kafka_client(bootstrap_server, orders_topic, ready_topic, name, d
     print(f"{Color.RED}⏰ Waited {timeout}s, but order was not called.{Color.RESET}")
 
 
-def main():
+def main() -> None:
+    """CLI customer entrypoint with mode switching."""
     parser = argparse.ArgumentParser(description="Matcha Café Customer Client")
-    parser.add_argument("--api-url", default=None, help="Order API URL (default: http://localhost:8000)")
-    parser.add_argument("--direct-kafka", action="store_true", help="Bypass API and connect directly to raw Kafka")
+    parser.add_argument("--api-url", default="http://localhost:8000", help="Order API URL")
     parser.add_argument("--bootstrap-server", default="localhost:9092", help="Kafka broker address")
-    parser.add_argument("--orders-topic", default="matcha-orders", help="Kafka orders topic")
-    parser.add_argument("--ready-topic", default="matcha-ready", help="Kafka pickup ready topic")
-    parser.add_argument("--name", type=str, default=None, help="Customer name")
-    parser.add_argument("--drink", type=str, default=None, help="Drink name")
-    parser.add_argument("--milk", type=str, default=None, help="Milk choice")
-    parser.add_argument("--sweetness", type=str, default=None, help="Sweetness level")
-    parser.add_argument("--timeout", type=int, default=60, help="Max wait time in seconds")
+    parser.add_argument("--orders-topic", default="matcha-orders", help="Orders Kafka topic")
+    parser.add_argument("--ready-topic", default="matcha-ready", help="Ready orders Kafka topic")
+    parser.add_argument("--name", help="Customer name (skips interactive prompt)")
+    parser.add_argument("--drink", help="Drink name (skips interactive prompt)")
+    parser.add_argument("--milk", help="Milk preference (skips interactive prompt)")
+    parser.add_argument("--sweetness", help="Sweetness level (skips interactive prompt)")
+    parser.add_argument("--direct-kafka", action="store_true", help="Bypass API and publish directly to Kafka")
+    parser.add_argument("--timeout", type=float, default=60.0, help="Max wait seconds for drink completion")
     args = parser.parse_args()
 
-    api_url = os.environ.get("ORDER_API_URL", os.environ.get("API_URL", args.api_url or "http://localhost:8000"))
+    api_url = os.environ.get("API_URL", args.api_url)
     bootstrap_server = os.environ.get("BOOTSTRAP_SERVER", args.bootstrap_server)
     orders_topic = os.environ.get("ORDERS_TOPIC", args.orders_topic)
     ready_topic = os.environ.get("READY_TOPIC", args.ready_topic)
 
-    # 1. Fetch live catalog dynamically if in API mode
-    if not args.direct_kafka:
-        menu_items, milks, sweetness_levels = fetch_live_catalog(api_url)
+    menu_items, milks, sweetness_levels = fetch_live_catalog(api_url)
+
+    if args.name and args.drink:
+        name = args.name
+        drink = args.drink
+        milk = args.milk or milks[0]
+        sweetness = args.sweetness or sweetness_levels[2]
     else:
-        menu_items, milks, sweetness_levels = FALLBACK_MENU, FALLBACK_MILKS, FALLBACK_SWEETNESS
+        name, drink, milk, sweetness = prompt_user_order(menu_items, milks, sweetness_levels)
 
-    menu_names = [item["name"] if isinstance(item, dict) else str(item) for item in menu_items]
-
-    # 2. Determine order details (interactive CLI prompt or automated)
-    if args.name is None and args.drink is None:
-        if sys.stdin.isatty():
-            name, drink, milk, sweetness = prompt_user_order(menu_items, milks, sweetness_levels)
-        else:
-            name = os.environ.get("CUSTOMER_NAME", random.choice(FALLBACK_CUSTOMERS))
-            drink = os.environ.get("CUSTOMER_DRINK", random.choice(menu_names))
-            milk = os.environ.get("CUSTOMER_MILK", random.choice(milks))
-            sweetness = os.environ.get("CUSTOMER_SWEETNESS", random.choice(sweetness_levels))
-    else:
-        name = args.name or os.environ.get("CUSTOMER_NAME", "Customer")
-        drink = args.drink or os.environ.get("CUSTOMER_DRINK", random.choice(menu_names))
-        milk = args.milk or os.environ.get("CUSTOMER_MILK", milks[0])
-        sweetness = args.sweetness or os.environ.get("CUSTOMER_SWEETNESS", sweetness_levels[2])
-
-    # 3. Route to selected mode
-    if args.direct_kafka:
+    if args.direct-kafka:
         run_direct_kafka_client(
             bootstrap_server=bootstrap_server,
             orders_topic=orders_topic,

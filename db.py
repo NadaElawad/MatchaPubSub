@@ -1,66 +1,161 @@
-"""
-Matcha Café - PostgreSQL Database Helper Module
-Production-ready with ThreadedConnectionPool, dynamic catalog queries, and order lifecycle tracking.
+"""Database access layer and domain state machine for Matcha PubSub.
+
+This module provides thread-safe connection pooling, atomic cup lifecycle
+transitions via PostgreSQL concurrency primitives (e.g. FOR UPDATE SKIP LOCKED),
+customer loyalty metrics, and real-time visualization state aggregation.
 """
 
-import json
-import os
+from __future__ import annotations
+
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from enum import StrEnum
+import hashlib
+import json
+import logging
+import os
+import threading
+from typing import Any, Generator, Sequence
+
 import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 
-_pool = None
+# ---------------------------------------------------------------------------
+# Logging Configuration
+# ---------------------------------------------------------------------------
+logger = logging.getLogger("matcha.db")
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(
+        logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
+    )
+    logger.addHandler(_handler)
+    logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
+
+# ---------------------------------------------------------------------------
+# Enums and Domain Constants
+# ---------------------------------------------------------------------------
+class CupStatus(StrEnum):
+    """Lifecycle statuses for ceramic reusable matcha cups."""
+    CLEAN_ON_SHELF = "CLEAN_ON_SHELF"
+    IN_BREWING = "IN_BREWING"
+    WITH_CUSTOMER = "WITH_CUSTOMER"
+    IN_DISHWASHER = "IN_DISHWASHER"
 
 
-def get_pool():
-    """Lazily initialize and return a ThreadedConnectionPool."""
+class OrderStatus(StrEnum):
+    """Fulfillment lifecycle statuses for orders."""
+    PENDING = "PENDING"
+    PREPARING = "PREPARING"
+    READY = "READY"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+
+class DiningOption(StrEnum):
+    """Seating / dispatch choices for guest orders."""
+    DINE_IN = "dine_in"
+    TAKE_AWAY = "take_away"
+
+
+DEFAULT_CUP_CAPACITY: int = 12
+DEFAULT_FALLBACK_PRICE: float = 6.50
+DINE_IN_DURATION_SECONDS: int = 45
+
+# ---------------------------------------------------------------------------
+# Database Connection Pool Management
+# ---------------------------------------------------------------------------
+_pool: pool.ThreadedConnectionPool | None = None
+_pool_lock: threading.Lock = threading.Lock()
+
+
+def get_pool() -> pool.ThreadedConnectionPool:
+    """Lazily initializes and returns a ThreadedConnectionPool.
+
+    Uses double-checked locking to ensure safe initialization across threads.
+
+    Returns:
+        pool.ThreadedConnectionPool: Active connection pool.
+    """
     global _pool
     if _pool is None or _pool.closed:
-        host = os.environ.get("DB_HOST", "localhost")
-        port = os.environ.get("DB_PORT", "5432")
-        dbname = os.environ.get("DB_NAME", "matcha_cafe")
-        user = os.environ.get("DB_USER", "barista")
-        password = os.environ.get("DB_PASSWORD", "matchapassword")
+        with _pool_lock:
+            if _pool is None or _pool.closed:
+                host = os.environ.get("DB_HOST", "localhost")
+                port = os.environ.get("DB_PORT", "5432")
+                dbname = os.environ.get("DB_NAME", "matcha_cafe")
+                user = os.environ.get("DB_USER", "barista")
+                password = os.environ.get("DB_PASSWORD", "matchapassword")
 
-        _pool = pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=20,
-            host=host,
-            port=port,
-            dbname=dbname,
-            user=user,
-            password=password,
-        )
+                logger.info(
+                    "Initializing ThreadedConnectionPool (host=%s, port=%s, db=%s, user=%s)",
+                    host,
+                    port,
+                    dbname,
+                    user,
+                )
+                _pool = pool.ThreadedConnectionPool(
+                    minconn=2,
+                    maxconn=25,
+                    host=host,
+                    port=port,
+                    dbname=dbname,
+                    user=user,
+                    password=password,
+                )
     return _pool
 
 
 @contextmanager
-def get_db_connection():
-    """Context manager for acquiring and returning a connection from the pool."""
+def get_db_connection() -> Generator[psycopg2.extensions.connection, None, None]:
+    """Context manager for acquiring and returning a connection from the pool.
+
+    Ensures that connections are rolled back on uncaught exceptions before
+    being returned to the pool to prevent dirty transaction leakage.
+
+    Yields:
+        psycopg2.extensions.connection: A connection from the pool.
+
+    Raises:
+        Exception: Re-raises any database or execution exceptions.
+    """
     p = get_pool()
     conn = p.getconn()
     try:
         yield conn
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         p.putconn(conn)
 
 
-def check_db_health():
-    """Verify that PostgreSQL is reachable and responsive."""
+def check_db_health() -> bool:
+    """Verifies that PostgreSQL is reachable and responsive.
+
+    Returns:
+        bool: True if connection is responsive, False otherwise.
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1;")
                 return True
-    except Exception as e:
-        print(f"[DB Health Check Error] {e}")
+    except Exception as exc:
+        logger.error("Database health check failed: %s", exc)
         return False
 
 
-def get_menu():
-    """Fetch all in-stock products ordered by category and name."""
+# ---------------------------------------------------------------------------
+# Menu & Catalog Queries
+# ---------------------------------------------------------------------------
+def get_menu() -> list[dict[str, Any]]:
+    """Fetches all in-stock products ordered by category and name.
+
+    Returns:
+        list[dict[str, Any]]: List of in-stock product items.
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -73,16 +168,25 @@ def get_menu():
                     """
                 )
                 rows = cur.fetchall()
-                for r in rows:
-                    r["price"] = float(r["price"])
+                for row in rows:
+                    row["price"] = float(row["price"])
                 return rows
-    except Exception as e:
-        print(f"[DB Error] get_menu failed: {e}")
+    except Exception as exc:
+        logger.error("get_menu failed: %s", exc, exc_info=True)
         return []
 
 
-def get_product_by_name(drink_name):
-    """Fetch a single product by name (case-insensitive)."""
+def get_product_by_name(drink_name: str) -> dict[str, Any] | None:
+    """Fetches a single product by name (case-insensitive).
+
+    Args:
+        drink_name: The name of the product or drink.
+
+    Returns:
+        dict[str, Any] | None: Product details dictionary if found, else None.
+    """
+    if not drink_name:
+        return None
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -98,23 +202,57 @@ def get_product_by_name(drink_name):
                 if row:
                     row["price"] = float(row["price"])
                 return row
-    except Exception as e:
-        print(f"[DB Error] get_product_by_name failed for '{drink_name}': {e}")
+    except Exception as exc:
+        logger.error("get_product_by_name failed for '%s': %s", drink_name, exc)
         return None
 
 
-def get_product_price(drink_name):
-    """Fetch product price from products table with fallback."""
+def get_product_price(drink_name: str) -> float:
+    """Fetches product price from products table with fallback.
+
+    Args:
+        drink_name: Name of the drink.
+
+    Returns:
+        float: Unit price of the product or fallback price.
+    """
     product = get_product_by_name(drink_name)
     if product and product.get("price") is not None:
-        return product["price"]
-    return 6.50
+        return float(product["price"])
+    return DEFAULT_FALLBACK_PRICE
 
 
-def create_pending_order(order_id, customer_name, drink_name, milk, sweetness, price, ordered_at=None, items=None, cup_codes=None, dining_option="take_away"):
-    """
-    Records an incoming order with status 'PENDING' before the barista begins preparation.
-    Supports single drinks and multi-item orders.
+# ---------------------------------------------------------------------------
+# Order Lifecycle Management
+# ---------------------------------------------------------------------------
+def create_pending_order(
+    order_id: str,
+    customer_name: str,
+    drink_name: str,
+    milk: str | None,
+    sweetness: str | None,
+    price: float,
+    ordered_at: str | datetime | None = None,
+    items: list[dict[str, Any]] | None = None,
+    cup_codes: list[str] | None = None,
+    dining_option: str = DiningOption.TAKE_AWAY,
+) -> bool:
+    """Records an incoming order with status 'PENDING'.
+
+    Args:
+        order_id: Unique order identifier.
+        customer_name: Guest name.
+        drink_name: Summary drink description.
+        milk: Milk customization choice.
+        sweetness: Sweetness percentage choice.
+        price: Total order monetary amount.
+        ordered_at: Optional timestamp when order was placed.
+        items: Optional structured list of line items.
+        cup_codes: Optional allocated cup codes.
+        dining_option: 'dine_in' or 'take_away'.
+
+    Returns:
+        bool: True on successful persistence, False on error.
     """
     try:
         items_json = json.dumps(items) if items is not None else None
@@ -124,24 +262,50 @@ def create_pending_order(order_id, customer_name, drink_name, milk, sweetness, p
                 cur.execute(
                     """
                     INSERT INTO orders (
-                        order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, ordered_at, ready_at, dining_option
+                        order_id, customer_name, drink_name, milk, sweetness, price,
+                        cup_code, cup_codes, items, status, ordered_at, ready_at, dining_option
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'PENDING', COALESCE(%s, NOW()), NULL, %s)
                     ON CONFLICT (order_id) DO UPDATE SET
                         items = COALESCE(EXCLUDED.items, orders.items),
                         dining_option = COALESCE(EXCLUDED.dining_option, orders.dining_option),
                         status = 'PENDING';
                     """,
-                    (order_id, customer_name, drink_name, milk, sweetness, price, cup_code_str, cup_codes, items_json, ordered_at, dining_option),
+                    (
+                        order_id,
+                        customer_name,
+                        drink_name,
+                        milk,
+                        sweetness,
+                        price,
+                        cup_code_str,
+                        cup_codes,
+                        items_json,
+                        ordered_at,
+                        dining_option,
+                    ),
                 )
                 conn.commit()
                 return True
-    except Exception as e:
-        print(f"[DB Error] Failed to create pending order {order_id}: {e}")
+    except Exception as exc:
+        logger.error("create_pending_order failed for %s: %s", order_id, exc, exc_info=True)
         return False
 
 
-def update_order_status(order_id, status, prepared_by=None):
-    """Update order status (e.g. PREPARING)."""
+def update_order_status(
+    order_id: str,
+    status: str,
+    prepared_by: str | None = None,
+) -> bool:
+    """Updates order status and optional preparer metadata.
+
+    Args:
+        order_id: Unique order identifier.
+        status: New OrderStatus string (e.g. 'PREPARING', 'READY').
+        prepared_by: Optional name of the barista/staff member.
+
+    Returns:
+        bool: True on successful update, False otherwise.
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -157,19 +321,27 @@ def update_order_status(order_id, status, prepared_by=None):
                     )
                 conn.commit()
                 return True
-    except Exception as e:
-        print(f"[DB Error] Failed to update order status for {order_id}: {e}")
+    except Exception as exc:
+        logger.error("update_order_status failed for %s: %s", order_id, exc)
         return False
 
 
-def get_order(order_id):
-    """Fetch order details and current status by order_id."""
+def get_order(order_id: str) -> dict[str, Any] | None:
+    """Fetches full order details and status by order_id.
+
+    Args:
+        order_id: Unique order identifier.
+
+    Returns:
+        dict[str, Any] | None: Order dictionary if found, else None.
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
+                    SELECT order_id, customer_name, drink_name, milk, sweetness, price,
+                           cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at, dining_option
                     FROM orders
                     WHERE order_id = %s;
                     """,
@@ -183,20 +355,32 @@ def get_order(order_id):
                     if row["ready_at"]:
                         row["ready_at"] = row["ready_at"].isoformat()
                 return row
-    except Exception as e:
-        print(f"[DB Error] Failed to fetch order {order_id}: {e}")
+    except Exception as exc:
+        logger.error("get_order failed for %s: %s", order_id, exc)
         return None
 
 
-def get_recent_orders(limit=20, customer_name=None):
-    """Fetch recent orders, optionally filtered by customer."""
+def get_recent_orders(
+    limit: int = 20,
+    customer_name: str | None = None,
+) -> list[dict[str, Any]]:
+    """Fetches recent orders, optionally filtered by customer name.
+
+    Args:
+        limit: Maximum number of rows to retrieve.
+        customer_name: Optional customer name for filtering.
+
+    Returns:
+        list[dict[str, Any]]: Ordered list of recent orders.
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 if customer_name:
                     cur.execute(
                         """
-                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
+                        SELECT order_id, customer_name, drink_name, milk, sweetness, price,
+                               cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at, dining_option
                         FROM orders
                         WHERE LOWER(customer_name) = LOWER(%s)
                         ORDER BY ordered_at DESC
@@ -207,7 +391,8 @@ def get_recent_orders(limit=20, customer_name=None):
                 else:
                     cur.execute(
                         """
-                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
+                        SELECT order_id, customer_name, drink_name, milk, sweetness, price,
+                               cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at, dining_option
                         FROM orders
                         ORDER BY ordered_at DESC
                         LIMIT %s;
@@ -222,19 +407,29 @@ def get_recent_orders(limit=20, customer_name=None):
                     if r["ready_at"]:
                         r["ready_at"] = r["ready_at"].isoformat()
                 return rows
-    except Exception as e:
-        print(f"[DB Error] Failed to fetch recent orders: {e}")
+    except Exception as exc:
+        logger.error("get_recent_orders failed: %s", exc)
         return []
 
 
-def get_customer_profile(customer_name):
-    """Fetch loyalty profile and preferences for a customer."""
+def get_customer_profile(customer_name: str) -> dict[str, Any] | None:
+    """Fetches loyalty profile and discovered preferences for a customer.
+
+    Args:
+        customer_name: Customer name.
+
+    Returns:
+        dict[str, Any] | None: Profile record if found, else None.
+    """
+    if not customer_name:
+        return None
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT name, favorite_drink, preferred_milk, preferred_sweetness, total_spent, total_orders, last_visit
+                    SELECT name, favorite_drink, preferred_milk, preferred_sweetness,
+                           total_spent, total_orders, last_visit
                     FROM customers
                     WHERE LOWER(name) = LOWER(%s);
                     """,
@@ -246,34 +441,38 @@ def get_customer_profile(customer_name):
                     if row["last_visit"]:
                         row["last_visit"] = row["last_visit"].isoformat()
                 return row
-    except Exception as e:
-        print(f"[DB Error] Failed to fetch customer {customer_name}: {e}")
+    except Exception as exc:
+        logger.error("get_customer_profile failed for %s: %s", customer_name, exc)
         return None
 
 
-def record_order(order_data):
-    """
-    Real-time transaction whenever an order is completed:
-    1. Inserts or updates the completed order in 'orders' table (sets status='READY', ready_at=NOW()).
-    2. Updates the 'customers' table immediately:
-       - Increments total_spent by the drink price
-       - Increments total_orders count
-       - Dynamically calculates customer preferences (favorite drink, milk, sweetness)
-       - Updates last_visit timestamp.
+def record_order(order_data: dict[str, Any]) -> bool:
+    """Atomically commits a fulfilled order and updates customer loyalty.
+
+    Performs:
+    1. Upsert completed order to 'orders' with status 'READY'.
+    2. Upsert customer profile: increment spend and order count.
+    3. Recomputes customer preferences via CTE based on order history.
+
+    Args:
+        order_data: Complete dictionary representing the ready order event.
+
+    Returns:
+        bool: True on successful transaction, False otherwise.
     """
     order_id = order_data.get("order_id")
     customer_name = order_data.get("client_name") or order_data.get("customer_name")
     drink = order_data.get("drink") or order_data.get("drink_name")
     milk = order_data.get("milk")
     sweetness = order_data.get("sweetness")
-    price = float(order_data.get("price", 6.50))
+    price = float(order_data.get("price", DEFAULT_FALLBACK_PRICE))
     cup_code = order_data.get("cup_code")
     cup_codes = order_data.get("cup_codes")
     items = order_data.get("items")
     items_json = json.dumps(items) if items is not None else None
     if not cup_code and cup_codes:
         cup_code = ", ".join(cup_codes)
-    status = order_data.get("status", "READY")
+    status = order_data.get("status", OrderStatus.READY)
     prepared_by = order_data.get("prepared_by", "Kaito (Solo Waiter)")
     ordered_at = order_data.get("ordered_at")
     ready_at = order_data.get("ready_at")
@@ -281,11 +480,12 @@ def record_order(order_data):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # 1. Upsert order into orders table
+                # 1. Upsert order
                 cur.execute(
                     """
                     INSERT INTO orders (
-                        order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
+                        order_id, customer_name, drink_name, milk, sweetness, price,
+                        cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, NOW()), COALESCE(%s, NOW()))
                     ON CONFLICT (order_id) DO UPDATE SET
                         cup_code = COALESCE(EXCLUDED.cup_code, orders.cup_code),
@@ -295,14 +495,29 @@ def record_order(order_data):
                         prepared_by = EXCLUDED.prepared_by,
                         ready_at = EXCLUDED.ready_at;
                     """,
-                    (order_id, customer_name, drink, milk, sweetness, price, cup_code, cup_codes, items_json, status, prepared_by, ordered_at, ready_at),
+                    (
+                        order_id,
+                        customer_name,
+                        drink,
+                        milk,
+                        sweetness,
+                        price,
+                        cup_code,
+                        cup_codes,
+                        items_json,
+                        status,
+                        prepared_by,
+                        ordered_at,
+                        ready_at,
+                    ),
                 )
 
-                # 2. Upsert customer profile: increment total_spent and total_orders
+                # 2. Upsert customer profile
                 cur.execute(
                     """
                     INSERT INTO customers (
-                        name, favorite_drink, preferred_milk, preferred_sweetness, total_spent, total_orders, last_visit, updated_at
+                        name, favorite_drink, preferred_milk, preferred_sweetness,
+                        total_spent, total_orders, last_visit, updated_at
                     ) VALUES (
                         %s, %s, %s, %s, %s, 1, COALESCE(%s, NOW()), NOW()
                     )
@@ -315,7 +530,7 @@ def record_order(order_data):
                     (customer_name, drink, milk, sweetness, price, ready_at),
                 )
 
-                # 3. Recalculate customer preferences contextually for their favorite drink (Option 2)
+                # 3. Recalculate customer preferences
                 cur.execute(
                     """
                     WITH fav AS (
@@ -352,7 +567,8 @@ def record_order(order_data):
                         preferred_sweetness = COALESCE(
                             (SELECT sweetness FROM pref_sweet),
                             (SELECT sweetness FROM orders WHERE customer_name = %s AND sweetness IS NOT NULL GROUP BY sweetness ORDER BY COUNT(*) DESC, MAX(ready_at) DESC LIMIT 1)
-                        )
+                        ),
+                        updated_at = NOW()
                     WHERE name = %s;
                     """,
                     (customer_name, customer_name, customer_name, customer_name, customer_name, customer_name),
@@ -360,25 +576,36 @@ def record_order(order_data):
 
                 conn.commit()
                 return True
-    except Exception as e:
-        print(f"[DB Error] Failed to record order & update customer {customer_name}: {e}")
+    except Exception as exc:
+        logger.error("record_order failed for %s: %s", order_id, exc, exc_info=True)
         return False
 
 
-# Alias for backward compatibility
+# Backward-compatible alias
 log_order = record_order
 
 
-# ==========================================
-# 🍵 CUP INVENTORY & LIFECYCLE MANAGEMENT
-# ==========================================
+# ---------------------------------------------------------------------------
+# Cup Inventory & Lifecycle Management
+# ---------------------------------------------------------------------------
+def claim_cup_for_order(
+    order_id: str,
+    customer_name: str,
+    actor: str = "Barista",
+) -> str | None:
+    """Atomically claims one clean cup from the shelf.
 
-def claim_cup_for_order(order_id, customer_name, actor="Barista"):
-    """
-    Atomically claims one clean cup from the shelf.
-    Uses 'FOR UPDATE SKIP LOCKED' so concurrent baristas never contend or double-claim.
-    Transitions: CLEAN_ON_SHELF -> IN_BREWING
-    Returns cup_code (e.g. 'CUP-01') or None if shelf is empty.
+    Uses PostgreSQL concurrency primitive 'FOR UPDATE SKIP LOCKED' so concurrent
+    baristas or workers never collide or double-claim cups.
+    Transition: CLEAN_ON_SHELF -> IN_BREWING
+
+    Args:
+        order_id: The order identifier requiring a ceramic cup.
+        customer_name: Name of the customer.
+        actor: System entity triggering the action.
+
+    Returns:
+        str | None: The claimed cup code (e.g. 'CUP-01') or None if shelf is empty.
     """
     try:
         with get_db_connection() as conn:
@@ -406,7 +633,7 @@ def claim_cup_for_order(order_id, customer_name, actor="Barista"):
                 row = cur.fetchone()
                 if row:
                     cup_code = row[0]
-                    # Log audit trail
+                    # Log audit event
                     cur.execute(
                         """
                         INSERT INTO cup_audit_log (cup_code, from_status, to_status, order_id, actor)
@@ -414,7 +641,7 @@ def claim_cup_for_order(order_id, customer_name, actor="Barista"):
                         """,
                         (cup_code, order_id, actor),
                     )
-                    # Associate cup with order in orders table
+                    # Associate cup with order record
                     cur.execute(
                         "UPDATE orders SET cup_code = %s WHERE order_id = %s;",
                         (cup_code, order_id),
@@ -422,14 +649,27 @@ def claim_cup_for_order(order_id, customer_name, actor="Barista"):
                     conn.commit()
                     return cup_code
                 return None
-    except Exception as e:
-        print(f"[DB Error] claim_cup_for_order failed: {e}")
+    except Exception as exc:
+        logger.error("claim_cup_for_order failed for %s: %s", order_id, exc, exc_info=True)
         return None
 
 
-def hand_cup_to_customer(cup_code, order_id=None, customer_name=None, actor="Barista"):
-    """
-    Transitions cup from IN_BREWING -> WITH_CUSTOMER when customer collects drink.
+def hand_cup_to_customer(
+    cup_code: str,
+    order_id: str | None = None,
+    customer_name: str | None = None,
+    actor: str = "Barista",
+) -> bool:
+    """Transitions cup from IN_BREWING -> WITH_CUSTOMER when customer collects drink.
+
+    Args:
+        cup_code: Target ceramic cup identifier.
+        order_id: Associated order ID.
+        customer_name: Customer collecting the cup.
+        actor: Staff or system entity.
+
+    Returns:
+        bool: True on success, False otherwise.
     """
     try:
         with get_db_connection() as conn:
@@ -455,15 +695,23 @@ def hand_cup_to_customer(cup_code, order_id=None, customer_name=None, actor="Bar
                 )
                 conn.commit()
                 return True
-    except Exception as e:
-        print(f"[DB Error] hand_cup_to_customer failed for {cup_code}: {e}")
+    except Exception as exc:
+        logger.error("hand_cup_to_customer failed for %s: %s", cup_code, exc)
         return False
 
 
-def return_cup_to_dishwasher(cup_code, actor="Customer"):
-    """
-    Transitions cup from WITH_CUSTOMER -> IN_DISHWASHER.
-    Called when customer brings their used cup to the return station.
+def return_cup_to_dishwasher(
+    cup_code: str,
+    actor: str = "Customer",
+) -> bool:
+    """Transitions cup from WITH_CUSTOMER -> IN_DISHWASHER.
+
+    Args:
+        cup_code: Cup being returned to the bussing / cleaning station.
+        actor: Actor description (e.g. 'Customer: Maya').
+
+    Returns:
+        bool: True on success, False otherwise.
     """
     try:
         with get_db_connection() as conn:
@@ -495,15 +743,25 @@ def return_cup_to_dishwasher(cup_code, actor="Customer"):
                 )
                 conn.commit()
                 return True
-    except Exception as e:
-        print(f"[DB Error] return_cup_to_dishwasher failed for {cup_code}: {e}")
+    except Exception as exc:
+        logger.error("return_cup_to_dishwasher failed for %s: %s", cup_code, exc)
         return False
 
 
-def sanitize_and_shelve_cup(cup_code, actor="Dishwasher"):
-    """
-    Transitions cup from IN_DISHWASHER -> CLEAN_ON_SHELF.
-    Resets current_order_id and current_customer, marks last_washed_at.
+def sanitize_and_shelve_cup(
+    cup_code: str,
+    actor: str = "Dishwasher",
+) -> bool:
+    """Transitions cup from IN_DISHWASHER -> CLEAN_ON_SHELF.
+
+    Resets active order assignments and stamps last_washed_at.
+
+    Args:
+        cup_code: Sanitized cup code.
+        actor: Actor performing the sanitization.
+
+    Returns:
+        bool: True on success, False otherwise.
     """
     try:
         with get_db_connection() as conn:
@@ -530,14 +788,16 @@ def sanitize_and_shelve_cup(cup_code, actor="Dishwasher"):
                 )
                 conn.commit()
                 return True
-    except Exception as e:
-        print(f"[DB Error] sanitize_and_shelve_cup failed for {cup_code}: {e}")
+    except Exception as exc:
+        logger.error("sanitize_and_shelve_cup failed for %s: %s", cup_code, exc)
         return False
 
 
-def get_cup_inventory_summary():
-    """
-    Returns high-level summary of all cups grouped by status.
+def get_cup_inventory_summary() -> dict[str, Any]:
+    """Returns high-level summary of all cups grouped by status in a single pass.
+
+    Returns:
+        dict[str, Any]: Partitioned cup inventory and status counts.
     """
     try:
         with get_db_connection() as conn:
@@ -550,14 +810,25 @@ def get_cup_inventory_summary():
                     """
                 )
                 cups = cur.fetchall()
+
+                shelf: list[str] = []
+                brewing: list[str] = []
+                customer: list[str] = []
+                dishwasher: list[str] = []
+
                 for c in cups:
                     if c["last_washed_at"]:
                         c["last_washed_at"] = c["last_washed_at"].isoformat()
-
-                shelf = [c["cup_code"] for c in cups if c["status"] == "CLEAN_ON_SHELF"]
-                brewing = [c["cup_code"] for c in cups if c["status"] == "IN_BREWING"]
-                customer = [c["cup_code"] for c in cups if c["status"] == "WITH_CUSTOMER"]
-                dishwasher = [c["cup_code"] for c in cups if c["status"] == "IN_DISHWASHER"]
+                    st = c.get("status")
+                    code = c.get("cup_code", "")
+                    if st == CupStatus.CLEAN_ON_SHELF:
+                        shelf.append(code)
+                    elif st == CupStatus.IN_BREWING:
+                        brewing.append(code)
+                    elif st == CupStatus.WITH_CUSTOMER:
+                        customer.append(code)
+                    elif st == CupStatus.IN_DISHWASHER:
+                        dishwasher.append(code)
 
                 return {
                     "total_cups": len(cups),
@@ -573,13 +844,24 @@ def get_cup_inventory_summary():
                     "in_dishwasher": dishwasher,
                     "cups": cups,
                 }
-    except Exception as e:
-        print(f"[DB Error] get_cup_inventory_summary failed: {e}")
+    except Exception as exc:
+        logger.error("get_cup_inventory_summary failed: %s", exc)
         return {"total_cups": 0, "counts": {}, "cups": []}
 
 
-def get_cup_audit_trail(cup_code=None, limit=20):
-    """Fetch recent audit log entries for cup lifecycle transitions."""
+def get_cup_audit_trail(
+    cup_code: str | None = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """Fetches recent audit log entries for cup lifecycle transitions.
+
+    Args:
+        cup_code: Optional cup code filter.
+        limit: Max rows to return.
+
+    Returns:
+        list[dict[str, Any]]: Audit rows with ISO-8601 formatted timestamps.
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -609,24 +891,32 @@ def get_cup_audit_trail(cup_code=None, limit=20):
                     if r["created_at"]:
                         r["created_at"] = r["created_at"].isoformat()
                 return rows
-    except Exception as e:
-        print(f"[DB Error] get_cup_audit_trail failed: {e}")
+    except Exception as exc:
+        logger.error("get_cup_audit_trail failed: %s", exc)
         return []
 
 
-def get_total_cups_count():
-    """Returns the total number of cups in the café pool (defaults to 12)."""
+def get_total_cups_count() -> int:
+    """Returns the total number of cups registered in the café inventory.
+
+    Returns:
+        int: Total cup count (defaults to DEFAULT_CUP_CAPACITY if unavailable).
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT COUNT(*) FROM cups;")
                 row = cur.fetchone()
-                return int(row[0]) if row and row[0] is not None else 12
-    except Exception:
-        return 12
+                return int(row[0]) if row and row[0] is not None else DEFAULT_CUP_CAPACITY
+    except Exception as exc:
+        logger.warning("get_total_cups_count failed, falling back to %d: %s", DEFAULT_CUP_CAPACITY, exc)
+        return DEFAULT_CUP_CAPACITY
 
 
-AOT_CHARACTERS = [
+# ---------------------------------------------------------------------------
+# Attack on Titan Character Configuration & Fallbacks
+# ---------------------------------------------------------------------------
+AOT_CHARACTERS: list[dict[str, Any]] = [
     {
         "id": "eren",
         "name": "Eren Yeager",
@@ -774,19 +1064,120 @@ AOT_CHARACTERS = [
 ]
 
 
-def get_analytics_breakdown(timeframe="minutes"):
+def _load_all_aot_characters() -> list[dict[str, Any]]:
+    """Loads all Attack on Titan characters from local dataset.
+
+    Returns:
+        list[dict[str, Any]]: Complete character pool.
     """
-    Aggregates orders, revenue, cup metrics, and logs across minutes, hours, or days.
+    chars_file = os.path.join(os.path.dirname(__file__), "static", "characters.json")
+    if os.path.exists(chars_file):
+        try:
+            with open(chars_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                result = []
+                for idx, c in enumerate(data):
+                    name = c.get("name") or f"Scout #{idx+1}"
+                    img_url = c.get("image_url") or ""
+                    filename = os.path.basename(img_url) if img_url else ""
+                    local_file = os.path.join(
+                        os.path.dirname(__file__), "static", "images", "characters", filename
+                    )
+                    local_path = f"/images/characters/{filename}" if os.path.exists(local_file) else img_url
+                    result.append({
+                        "id": str(c.get("id", idx)),
+                        "name": name,
+                        "image": local_path or img_url,
+                    })
+                if result:
+                    return result
+        except Exception as exc:
+            logger.error("Error loading AoT characters from %s: %s", chars_file, exc)
+
+    # Core 12 fallback
+    return [
+        {"id": c["id"], "name": c["name"], "image": f"/images/characters/{c['id']}.webp"}
+        for c in AOT_CHARACTERS
+    ]
+
+
+_AOT_CHARACTER_POOL: list[dict[str, Any]] = _load_all_aot_characters()
+_diner_assignments: dict[str, dict[str, Any]] = {}
+
+
+def get_dining_action_label(
+    drink_name: str,
+    status: str,
+    items: list[dict[str, Any]] | None = None,
+) -> tuple[str, str]:
+    """Generates context-aware status badges and action labels for diners.
+
+    Distinguishes beverages (e.g. 'Sipping Matcha 🍵') from desserts/pastries
+    (e.g. 'Savoring Cheesecake 🍰').
+
+    Args:
+        drink_name: Order drink or item title.
+        status: OrderStatus string.
+        items: Optional structured order items list.
+
+    Returns:
+        tuple[str, str]: (status_badge, action_label)
+    """
+    dlower = (drink_name or "").lower()
+    is_dessert = any(
+        kw in dlower for kw in ("cheesecake", "soft serve", "cake", "pastry", "parfait")
+    )
+    if items and isinstance(items, list):
+        for it in items:
+            cat = it.get("category", "")
+            if cat in ("Dessert", "Pastry") or not it.get("is_drink", True):
+                is_dessert = True
+                break
+
+    if status == OrderStatus.PENDING:
+        return ("pending", "Order in Queue 🍃")
+    elif status == OrderStatus.PREPARING:
+        return ("preparing", "Plating Dessert 🍽️" if is_dessert else "Whisking at Bar 🥣")
+    else:  # READY or COMPLETED
+        if "cheesecake" in dlower:
+            return ("ready", "Savoring Cheesecake 🍰")
+        elif "soft serve" in dlower:
+            return ("ready", "Savoring Soft Serve 🍦")
+        elif is_dessert:
+            return ("ready", "Enjoying Dessert 🍧")
+        elif "espresso" in dlower:
+            return ("ready", "Sipping Espresso Fusion ☕")
+        elif "float" in dlower:
+            return ("ready", "Sipping Matcha Float 🍓")
+        elif "iced" in dlower:
+            return ("ready", "Sipping Iced Matcha 🧊")
+        else:
+            return ("ready", "Sipping Matcha 🍵")
+
+
+# ---------------------------------------------------------------------------
+# Real-Time Telemetry & Analytics
+# ---------------------------------------------------------------------------
+def get_analytics_breakdown(timeframe: str = "minutes") -> dict[str, Any]:
+    """Aggregates timeseries metrics, cup logs, and throughput over a timeframe.
+
+    Uses PostgreSQL generate_series() to ensure continuous timeline buckets
+    with no gaps across minutes (60m), hours (24h), and days (7d).
+
+    Args:
+        timeframe: 'minutes', 'hours', or 'days'.
+
+    Returns:
+        dict[str, Any]: Aggregated chart series, audit events, and KPI metrics.
     """
     timeframe = timeframe.lower()
     if timeframe not in ("minutes", "hours", "days"):
         timeframe = "minutes"
 
-    now = datetime.now(timezone.utc)
-    chart_series = []
-    popular_items = []
-    audit_events = []
-    customer_leaderboard = []
+    chart_series: list[dict[str, Any]] = []
+    popular_items: list[dict[str, Any]] = []
+    audit_events: list[dict[str, Any]] = []
+    customer_leaderboard: list[dict[str, Any]] = []
 
     try:
         with get_db_connection() as conn:
@@ -794,7 +1185,8 @@ def get_analytics_breakdown(timeframe="minutes"):
                 # 1. Base Metrics by Timeframe
                 if timeframe == "minutes":
                     time_label = "Past 60 Minutes (5-Min Slices)"
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT 
                             to_char(b.bucket, 'HH24:MI') AS time_bucket,
                             COUNT(o.order_id) AS orders_count,
@@ -810,7 +1202,8 @@ def get_analytics_breakdown(timeframe="minutes"):
                         )
                         GROUP BY b.bucket
                         ORDER BY b.bucket ASC;
-                    """)
+                        """
+                    )
                     rows = cur.fetchall()
                     for r in rows:
                         chart_series.append({
@@ -819,20 +1212,22 @@ def get_analytics_breakdown(timeframe="minutes"):
                             "revenue": float(r["total_revenue"]),
                         })
 
-                    # Summary cards for minutes
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT 
                             COUNT(*) AS total_orders,
                             COALESCE(SUM(price), 0) AS total_revenue,
                             COALESCE(AVG(EXTRACT(EPOCH FROM (ready_at - ordered_at))), 42.0) AS avg_prep_time_sec
                         FROM orders
                         WHERE ordered_at >= NOW() - INTERVAL '60 minutes';
-                    """)
+                        """
+                    )
                     summary = cur.fetchone() or {"total_orders": 0, "total_revenue": 0.0, "avg_prep_time_sec": 42.0}
 
                 elif timeframe == "hours":
                     time_label = "Past 24 Hours (Hourly Slices)"
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT 
                             to_char(b.bucket, 'HH24:00') AS time_bucket,
                             COUNT(o.order_id) AS orders_count,
@@ -848,7 +1243,8 @@ def get_analytics_breakdown(timeframe="minutes"):
                         )
                         GROUP BY b.bucket
                         ORDER BY b.bucket ASC;
-                    """)
+                        """
+                    )
                     rows = cur.fetchall()
                     for r in rows:
                         chart_series.append({
@@ -857,19 +1253,22 @@ def get_analytics_breakdown(timeframe="minutes"):
                             "revenue": float(r["total_revenue"]),
                         })
 
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT 
                             COUNT(*) AS total_orders,
                             COALESCE(SUM(price), 0) AS total_revenue,
                             COALESCE(AVG(EXTRACT(EPOCH FROM (ready_at - ordered_at))), 45.0) AS avg_prep_time_sec
                         FROM orders
                         WHERE ordered_at >= NOW() - INTERVAL '24 hours';
-                    """)
+                        """
+                    )
                     summary = cur.fetchone() or {"total_orders": 0, "total_revenue": 0.0, "avg_prep_time_sec": 45.0}
 
                 else:  # days
                     time_label = "Past 7 Days (Daily Slices)"
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT 
                             to_char(b.bucket, 'Mon DD') AS time_bucket,
                             COUNT(o.order_id) AS orders_count,
@@ -885,7 +1284,8 @@ def get_analytics_breakdown(timeframe="minutes"):
                         )
                         GROUP BY b.bucket
                         ORDER BY b.bucket ASC;
-                    """)
+                        """
+                    )
                     rows = cur.fetchall()
                     for r in rows:
                         chart_series.append({
@@ -894,19 +1294,22 @@ def get_analytics_breakdown(timeframe="minutes"):
                             "revenue": float(r["total_revenue"]),
                         })
 
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT 
                             COUNT(*) AS total_orders,
                             COALESCE(SUM(price), 0) AS total_revenue,
                             COALESCE(AVG(EXTRACT(EPOCH FROM (ready_at - ordered_at))), 48.0) AS avg_prep_time_sec
                         FROM orders
                         WHERE ordered_at >= NOW() - INTERVAL '7 days';
-                    """)
+                        """
+                    )
                     summary = cur.fetchone() or {"total_orders": 0, "total_revenue": 0.0, "avg_prep_time_sec": 48.0}
 
                 # 2. Popular creations breakdown in this timeframe
                 interval_clause = "60 minutes" if timeframe == "minutes" else ("24 hours" if timeframe == "hours" else "7 days")
-                cur.execute(f"""
+                cur.execute(
+                    f"""
                     SELECT 
                         drink_name,
                         COUNT(*) as count,
@@ -916,7 +1319,8 @@ def get_analytics_breakdown(timeframe="minutes"):
                     GROUP BY drink_name
                     ORDER BY count DESC
                     LIMIT 6;
-                """)
+                    """
+                )
                 for r in cur.fetchall():
                     popular_items.append({
                         "name": r["drink_name"],
@@ -929,21 +1333,25 @@ def get_analytics_breakdown(timeframe="minutes"):
                 counts = inv.get("counts", {})
 
                 # 4. Audit Log Events in this timeframe
-                cur.execute(f"""
+                cur.execute(
+                    f"""
                     SELECT id, cup_code, from_status, to_status, order_id, actor, created_at
                     FROM cup_audit_log
                     WHERE created_at >= NOW() - INTERVAL '{interval_clause}'
                     ORDER BY id DESC
                     LIMIT 30;
-                """)
+                    """
+                )
                 audit_rows = cur.fetchall()
                 if not audit_rows:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         SELECT id, cup_code, from_status, to_status, order_id, actor, created_at
                         FROM cup_audit_log
                         ORDER BY id DESC
                         LIMIT 30;
-                    """)
+                        """
+                    )
                     audit_rows = cur.fetchall()
 
                 for a in audit_rows:
@@ -963,13 +1371,15 @@ def get_analytics_breakdown(timeframe="minutes"):
                         "date": a["created_at"].strftime("%b %d") if a["created_at"] else "",
                     })
 
-                # 5. Customer Leaderboard (Top Scouts & Regulars)
-                cur.execute("""
+                # 5. Customer Leaderboard
+                cur.execute(
+                    """
                     SELECT name, favorite_drink, total_spent, total_orders, last_visit
                     FROM customers
                     ORDER BY total_spent DESC
                     LIMIT 8;
-                """)
+                    """
+                )
                 for c in cur.fetchall():
                     customer_leaderboard.append({
                         "name": c["name"],
@@ -980,20 +1390,24 @@ def get_analytics_breakdown(timeframe="minutes"):
                     })
 
                 # 6. Active orders in flight (clean up any stale zombie orders older than 10 minutes)
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE orders 
                     SET status = 'CANCELLED' 
                     WHERE status IN ('PENDING', 'PREPARING') 
                     AND ordered_at < NOW() - INTERVAL '10 minutes';
-                """)
+                    """
+                )
                 conn.commit()
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT COUNT(*) AS active 
                     FROM orders 
                     WHERE status IN ('PENDING', 'PREPARING')
                     AND ordered_at >= NOW() - INTERVAL '10 minutes';
-                """)
+                    """
+                )
                 active_row = cur.fetchone()
                 active_orders = int(active_row["active"]) if active_row else 0
 
@@ -1011,8 +1425,8 @@ def get_analytics_breakdown(timeframe="minutes"):
                     "audit_events": audit_events,
                     "customer_leaderboard": customer_leaderboard,
                 }
-    except Exception as e:
-        print(f"[DB Error] get_analytics_breakdown: {e}")
+    except Exception as exc:
+        logger.error("get_analytics_breakdown failed: %s", exc, exc_info=True)
         return {
             "timeframe": timeframe,
             "time_label": "Analytics Unavailable",
@@ -1029,104 +1443,23 @@ def get_analytics_breakdown(timeframe="minutes"):
         }
 
 
-# Characters available for random assignment to dine-in customers
-def _load_all_aot_characters():
-    chars_file = os.path.join(os.path.dirname(__file__), "static", "characters.json")
-    if os.path.exists(chars_file):
-        try:
-            with open(chars_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                result = []
-                for idx, c in enumerate(data):
-                    name = c.get("name") or f"Scout #{idx+1}"
-                    img_url = c.get("image_url") or ""
-                    filename = os.path.basename(img_url) if img_url else ""
-                    # Check if downloaded locally
-                    local_file = os.path.join(os.path.dirname(__file__), "static", "images", "characters", filename)
-                    local_path = f"/images/characters/{filename}" if os.path.exists(local_file) else img_url
-                    result.append({
-                        "id": str(c.get("id", idx)),
-                        "name": name,
-                        "image": local_path or img_url,
-                    })
-                if result:
-                    return result
-        except Exception as e:
-            print(f"[AOT Character Load Error] {e}")
+def get_active_diners() -> dict[str, Any]:
+    """Returns active dine-in customers for the Attack on Titan dining scene.
 
-    # Fallback to core 12
-    return [
-        {"id": "eren", "name": "Eren Yeager", "image": "/images/characters/eren.webp"},
-        {"id": "mikasa", "name": "Mikasa Ackerman", "image": "/images/characters/mikasa.webp"},
-        {"id": "armin", "name": "Armin Arlert", "image": "/images/characters/armin.webp"},
-        {"id": "levi", "name": "Levi Ackerman", "image": "/images/characters/levi.webp"},
-        {"id": "erwin", "name": "Erwin Smith", "image": "/images/characters/erwin.webp"},
-        {"id": "hange", "name": "Hange Zoë", "image": "/images/characters/hange.webp"},
-        {"id": "sasha", "name": "Sasha Blouse", "image": "/images/characters/sasha.webp"},
-        {"id": "connie", "name": "Connie Springer", "image": "/images/characters/connie.webp"},
-        {"id": "jean", "name": "Jean Kirstein", "image": "/images/characters/jean.webp"},
-        {"id": "reiner", "name": "Reiner Braun", "image": "/images/characters/reiner.webp"},
-        {"id": "annie", "name": "Annie Leonhart", "image": "/images/characters/annie.webp"},
-        {"id": "historia", "name": "Historia Reiss", "image": "/images/characters/historia.webp"},
-    ]
+    Each customer is assigned a character from the AoT pool and a seat (1-12).
+    Diners auto-vacate after DINE_IN_DURATION_SECONDS.
 
-_AOT_CHARACTER_POOL = _load_all_aot_characters()
-
-# In-memory mapping of order_id -> assigned character + seat for the dining scene
-_diner_assignments = {}
-
-DINE_IN_DURATION_SECONDS = 45
-
-
-def get_dining_action_label(drink_name: str, status: str, items=None) -> tuple:
+    Returns:
+        dict[str, Any]: Live table seats, diners, and cup circulation metrics.
     """
-    Returns (status_badge, action_label) appropriately matching drinks vs desserts/pastries.
-    Fixes bug where desserts were labeled 'sipping matcha'.
-    """
-    dlower = (drink_name or "").lower()
-    is_dessert = ("cheesecake" in dlower or "soft serve" in dlower or "cake" in dlower 
-                  or "pastry" in dlower or "parfait" in dlower)
-    if items and isinstance(items, list):
-        for it in items:
-            cat = it.get("category", "")
-            if cat in ("Dessert", "Pastry") or not it.get("is_drink", True):
-                is_dessert = True
-                break
-
-    if status == "PENDING":
-        return ("pending", "Order in Queue 🍃")
-    elif status == "PREPARING":
-        return ("preparing", "Plating Dessert 🍽️" if is_dessert else "Whisking at Bar 🥣")
-    else:  # READY or DELIVERED
-        if "cheesecake" in dlower:
-            return ("ready", "Savoring Cheesecake 🍰")
-        elif "soft serve" in dlower:
-            return ("ready", "Savoring Soft Serve 🍦")
-        elif is_dessert:
-            return ("ready", "Enjoying Dessert 🍧")
-        elif "espresso" in dlower:
-            return ("ready", "Sipping Espresso Fusion ☕")
-        elif "float" in dlower:
-            return ("ready", "Sipping Matcha Float 🍓")
-        elif "iced" in dlower:
-            return ("ready", "Sipping Iced Matcha 🧊")
-        else:
-            return ("ready", "Sipping Matcha 🍵")
-
-
-def get_active_diners():
-    """
-    Returns active dine-in customers for the visualization.
-    Each customer is assigned a random AoT character from the 100+ character pool and a seat (1-12).
-    Customers leave after DINE_IN_DURATION_SECONDS from order placement.
-    """
-    import hashlib
+    now = datetime.now(timezone.utc)
 
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Get orders from the last 2 minutes that chose dine_in
-                cur.execute("""
+                # Retrieve recent dine-in orders
+                cur.execute(
+                    """
                     SELECT order_id, customer_name, drink_name, items, status, price,
                            ordered_at, ready_at, dining_option
                     FROM orders
@@ -1134,7 +1467,8 @@ def get_active_diners():
                       AND (dining_option = 'dine_in' OR dining_option IS NULL)
                     ORDER BY ordered_at DESC
                     LIMIT 30;
-                """)
+                    """
+                )
                 recent_orders = cur.fetchall()
 
                 # Calculate live cup circulation from database
@@ -1145,54 +1479,47 @@ def get_active_diners():
                 in_brewing = cup_counts.get("IN_BREWING", 0)
                 with_customer = cup_counts.get("WITH_CUSTOMER", 0)
                 in_dishwasher = cup_counts.get("IN_DISHWASHER", 0)
-                total_cups = sum(cup_counts.values()) or 12
+                total_cups = sum(cup_counts.values()) or DEFAULT_CUP_CAPACITY
                 cups_in_circulation = in_brewing + with_customer + in_dishwasher
 
-        from datetime import datetime, timezone, timedelta
-        now = datetime.now(timezone.utc)
-
-        # Filter to dine-in orders only (explicitly excluding take_away)
-        active_diners = []
-        occupied_seats = {
+        active_diners: list[dict[str, Any]] = []
+        occupied_seats: set[int] = {
             info["seat"] for info in _diner_assignments.values()
         }
 
         for order in recent_orders:
-            # Skip if explicitly marked take_away
-            if order.get("dining_option") == "take_away":
+            if order.get("dining_option") == DiningOption.TAKE_AWAY:
                 continue
 
             oid = order["order_id"]
             ordered_at = order["ordered_at"]
-            if ordered_at and hasattr(ordered_at, 'tzinfo') and ordered_at.tzinfo is None:
+            if ordered_at and hasattr(ordered_at, "tzinfo") and ordered_at.tzinfo is None:
                 ordered_at = ordered_at.replace(tzinfo=timezone.utc)
 
             if not ordered_at:
                 continue
 
             elapsed = (now - ordered_at).total_seconds()
-            remaining = max(0, DINE_IN_DURATION_SECONDS - elapsed)
+            remaining = max(0.0, DINE_IN_DURATION_SECONDS - elapsed)
 
-            # Customer has left
+            # Customer has departed
             if remaining <= 0:
                 _diner_assignments.pop(oid, None)
                 continue
 
-            # Assign character + seat if not already assigned
+            # Assign character and seat if first time seeing this order
             if oid not in _diner_assignments:
-                # Random/hash selection across the full 136-character AoT dataset
                 h = int(hashlib.md5(oid.encode()).hexdigest(), 16)
                 char_idx = h % len(_AOT_CHARACTER_POOL)
                 char = _AOT_CHARACTER_POOL[char_idx]
 
-                # Find an unoccupied seat
-                seat = None
+                seat: int | None = None
                 for s in range(1, 13):
                     if s not in occupied_seats:
                         seat = s
                         break
                 if seat is None:
-                    continue  # table full
+                    continue  # Table full
 
                 _diner_assignments[oid] = {
                     "character": char,
@@ -1206,8 +1533,9 @@ def get_active_diners():
                 order["drink_name"], order["status"], order.get("items")
             )
             dlower = (order["drink_name"] or "").lower()
-            is_dessert = ("cheesecake" in dlower or "soft serve" in dlower or "cake" in dlower 
-                          or "pastry" in dlower or "parfait" in dlower)
+            is_dessert = any(
+                kw in dlower for kw in ("cheesecake", "soft serve", "cake", "pastry", "parfait")
+            )
 
             active_diners.append({
                 "order_id": oid,
@@ -1217,7 +1545,7 @@ def get_active_diners():
                 "status_badge": status_badge,
                 "action_label": action_label,
                 "is_dessert": is_dessert,
-                "price": float(order["price"]) if order["price"] else 0,
+                "price": float(order["price"]) if order["price"] else 0.0,
                 "seat_number": assignment["seat"],
                 "character_id": assignment["character"]["id"],
                 "character_name": assignment["character"]["name"],
@@ -1227,14 +1555,12 @@ def get_active_diners():
                 "ordered_at": ordered_at.isoformat() if ordered_at else None,
             })
 
-        # Build seats array (12 seats, each empty or occupied)
-        seats = []
+        # Build full 12-seat representation
         diner_by_seat = {d["seat_number"]: d for d in active_diners}
-        for s in range(1, 13):
-            if s in diner_by_seat:
-                seats.append({**diner_by_seat[s], "occupied": True})
-            else:
-                seats.append({"seat_number": s, "occupied": False})
+        seats = [
+            {**diner_by_seat[s], "occupied": True} if s in diner_by_seat else {"seat_number": s, "occupied": False}
+            for s in range(1, 13)
+        ]
 
         return {
             "total_seats": 12,
@@ -1248,70 +1574,73 @@ def get_active_diners():
                 "in_brewing": in_brewing,
                 "with_customer": with_customer,
                 "in_dishwasher": in_dishwasher,
-            }
+            },
         }
 
-    except Exception as e:
-        print(f"[DB Error] get_active_diners: {e}")
+    except Exception as exc:
+        logger.error("get_active_diners failed: %s", exc, exc_info=True)
         return {
             "total_seats": 12,
             "occupied_count": 0,
             "diners": [],
             "seats": [{"seat_number": s, "occupied": False} for s in range(1, 13)],
             "cups": {
-                "total": 12,
+                "total": DEFAULT_CUP_CAPACITY,
                 "in_circulation": 0,
-                "clean_on_shelf": 12,
+                "clean_on_shelf": DEFAULT_CUP_CAPACITY,
                 "in_brewing": 0,
                 "with_customer": 0,
                 "in_dishwasher": 0,
-            }
+            },
         }
 
 
-def get_restaurant_state():
-    """
-    Returns real-time visualization state of the Attack on Titan restaurant:
-    - 12 seats on the Grand Survey Corps Mess Hall Table (6 North, 6 South)
-    - Active occupants, allocated cups, and current order status
-    - Barista Prep Station & Captain Levi's Cleaning & Sanitizing Bay
+def get_restaurant_state() -> dict[str, Any]:
+    """Returns visualization state for the Survey Corps Mess Hall.
+
+    Aggregates:
+    - 12 seats on the Grand Dining Table (6 North, 6 South)
+    - Active occupants, allocated cups, and order statuses
+    - Barista Prep Station & Captain Levi's Cleaning Station
+
+    Returns:
+        dict[str, Any]: Structured mess hall state payload.
     """
     try:
         inv = get_cup_inventory_summary()
         cups_list = inv.get("cups", [])
         counts = inv.get("counts", {})
 
-        # Fetch recent orders (last 2 hours) or any active orders
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT order_id, customer_name, drink_name, items, price, status, cup_codes, cup_code, ordered_at, ready_at
+                cur.execute(
+                    """
+                    SELECT order_id, customer_name, drink_name, items, price, status,
+                           cup_codes, cup_code, ordered_at, ready_at
                     FROM orders
                     ORDER BY id DESC
                     LIMIT 25;
-                """)
+                    """
+                )
                 recent_orders = cur.fetchall()
 
-        # Map cups currently WITH_CUSTOMER or IN_BREWING
-        active_cups_by_holder = {}
+        # Map cups currently held by customer or barista
+        active_cups_by_holder: dict[str, list[str]] = {}
         for c in cups_list:
-            if c["status"] in ("WITH_CUSTOMER", "IN_BREWING"):
+            if c["status"] in (CupStatus.WITH_CUSTOMER, CupStatus.IN_BREWING):
                 holder = (c.get("current_customer") or "").strip()
                 if holder:
-                    if holder not in active_cups_by_holder:
-                        active_cups_by_holder[holder] = []
-                    active_cups_by_holder[holder].append(c["cup_code"])
+                    active_cups_by_holder.setdefault(holder, []).append(c["cup_code"])
 
-        # Build 12 seats
-        seats = []
-        assigned_orders = set()
+        # Construct 12 seat entities
+        seats: list[dict[str, Any]] = []
+        assigned_orders: set[str] = set()
 
         for idx, char in enumerate(AOT_CHARACTERS):
             seat_num = idx + 1
             char_name = char["name"]
             char_first = char["name"].split()[0]
 
-            # Find matching order for this character or assign active order
             matched_order = None
             for ord_row in recent_orders:
                 if ord_row["order_id"] in assigned_orders:
@@ -1322,11 +1651,9 @@ def get_restaurant_state():
                     assigned_orders.add(ord_row["order_id"])
                     break
 
-            # Check if this character has active cups
             held_cups = active_cups_by_holder.get(char_name, []) or active_cups_by_holder.get(char_first, [])
 
-            # Determine seat state
-            if matched_order and matched_order["status"] == "PREPARING":
+            if matched_order and matched_order["status"] == OrderStatus.PREPARING:
                 seat_status = "ORDER_PREPARING"
                 status_label = "Awaiting Barista (Whisking...) 🥣"
                 order_id = matched_order["order_id"]
@@ -1334,7 +1661,7 @@ def get_restaurant_state():
                 price = float(matched_order["price"])
                 cup_display = ", ".join(held_cups) if held_cups else "Allocating..."
                 is_active = True
-            elif matched_order and matched_order["status"] == "PENDING":
+            elif matched_order and matched_order["status"] == OrderStatus.PENDING:
                 seat_status = "ORDER_PENDING"
                 status_label = "Order in Queue 🍃"
                 order_id = matched_order["order_id"]
@@ -1347,10 +1674,10 @@ def get_restaurant_state():
                 status_label = "Sipping Ceremonial Matcha 🍵"
                 order_id = matched_order["order_id"] if matched_order else "ORD-ACTIVE"
                 drink = matched_order["drink_name"] if matched_order else char["favorite_drink"]
-                price = float(matched_order["price"]) if matched_order else 6.50
+                price = float(matched_order["price"]) if matched_order else DEFAULT_FALLBACK_PRICE
                 cup_display = ", ".join(held_cups)
                 is_active = True
-            elif matched_order and matched_order["status"] == "READY":
+            elif matched_order and matched_order["status"] == OrderStatus.READY:
                 seat_status = "ENJOYING"
                 status_label = "Enjoying Fresh Order ✨"
                 order_id = matched_order["order_id"]
@@ -1393,17 +1720,14 @@ def get_restaurant_state():
         south_seats = [s for s in seats if s["side"] == "south"]
         occupied_count = sum(1 for s in seats if s["is_active"])
 
-        # Barista Station
         preparing_orders = [
             {"order_id": o["order_id"], "customer": o["customer_name"], "drink": o["drink_name"], "status": o["status"]}
-            for o in recent_orders if o["status"] in ("PENDING", "PREPARING")
+            for o in recent_orders if o["status"] in (OrderStatus.PENDING, OrderStatus.PREPARING)
         ]
 
-        # Dishwasher Station
-        clean_shelf = [c["cup_code"] for c in cups_list if c["status"] == "CLEAN_ON_SHELF"]
-        in_dishwasher = [c["cup_code"] for c in cups_list if c["status"] == "IN_DISHWASHER"]
-        in_brewing = [c["cup_code"] for c in cups_list if c["status"] == "IN_BREWING"]
-        with_customer = [c["cup_code"] for c in cups_list if c["status"] == "WITH_CUSTOMER"]
+        clean_shelf = [c["cup_code"] for c in cups_list if c["status"] == CupStatus.CLEAN_ON_SHELF]
+        in_dishwasher = [c["cup_code"] for c in cups_list if c["status"] == CupStatus.IN_DISHWASHER]
+        in_brewing = [c["cup_code"] for c in cups_list if c["status"] == CupStatus.IN_BREWING]
 
         cleaning_data = {
             "name": "Captain Levi's Disinfection Bay",
@@ -1447,8 +1771,8 @@ def get_restaurant_state():
             "cleaning_station": cleaning_data,
             "inventory_counts": counts,
         }
-    except Exception as e:
-        print(f"[DB Error] get_restaurant_state: {e}")
+    except Exception as exc:
+        logger.error("get_restaurant_state failed: %s", exc, exc_info=True)
         return {
             "mess_hall": {
                 "name": "Survey Corps Mess Hall",
@@ -1462,5 +1786,3 @@ def get_restaurant_state():
             "cleaning_station": {"inspector": "Captain Levi", "clean_shelf": []},
             "inventory_counts": {},
         }
-
-

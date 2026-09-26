@@ -1,23 +1,23 @@
-#!/usr/bin/env python3
-"""
-Matcha PubSub - Order API Service (FastAPI)
+"""Matcha PubSub - Order API Service (FastAPI).
 
-Role:
-- Decouples client applications from raw Kafka brokers and direct database credentials.
-- Dynamically queries PostgreSQL 'products' table to serve live menus and authoritatively validate prices.
-- Validates order requests with Pydantic.
-- Publishes validated order events to the Kafka 'matcha-orders' topic.
-- Tracks order lifecycles (PENDING -> PREPARING -> READY) via PostgreSQL.
-- Provides health checks (Liveness & Readiness) for production orchestrators (Kubernetes / Docker).
+This module provides the primary HTTP ingestion and state query interface for
+the Matcha Café system. It handles:
+- Dynamic catalog retrieval with authoritative pricing from PostgreSQL.
+- Pydantic-based input validation and tray item normalization.
+- Safe Kafka event production for decoupled worker consumption.
+- Observability and health probes for Kubernetes orchestration.
+- Live dining visualization state and timeseries telemetry.
 """
 
-import json
-import os
-import random
-import uuid
+from __future__ import annotations
+
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+import json
+import logging
+import os
+import random
+from typing import Any, AsyncGenerator
 
 from confluent_kafka import Producer
 from fastapi import FastAPI, HTTPException, Query, status
@@ -28,24 +28,63 @@ from pydantic import BaseModel, Field
 
 import db
 
-# Configuration
-BOOTSTRAP_SERVER = os.environ.get("BOOTSTRAP_SERVER", "localhost:9092")
-ORDERS_TOPIC = os.environ.get("ORDERS_TOPIC", "matcha-orders")
-READY_TOPIC = os.environ.get("READY_TOPIC", "matcha-ready")
+# ---------------------------------------------------------------------------
+# Logging Configuration
+# ---------------------------------------------------------------------------
+logger = logging.getLogger("matcha.api")
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(
+        logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
+    )
+    logger.addHandler(_handler)
+    logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
 
-# Customizable options allowed across the café
-ALLOWED_MILKS = ["Oat Milk", "Almond Milk", "Whole Milk", "Soy Milk", "None / Black"]
-ALLOWED_SWEETNESS = ["0% (Unsweetened)", "25%", "50%", "75%", "100%"]
+# ---------------------------------------------------------------------------
+# Service Configuration & Constants
+# ---------------------------------------------------------------------------
+BOOTSTRAP_SERVER: str = os.environ.get("BOOTSTRAP_SERVER", "localhost:9092")
+ORDERS_TOPIC: str = os.environ.get("ORDERS_TOPIC", "matcha-orders")
+READY_TOPIC: str = os.environ.get("READY_TOPIC", "matcha-ready")
+RETURNS_TOPIC: str = os.environ.get("RETURNS_TOPIC", "matcha-cup-returns")
 
-# Global Kafka Producer instance
-kafka_producer: Optional[Producer] = None
+ALLOWED_MILKS: list[str] = [
+    "Oat Milk",
+    "Almond Milk",
+    "Whole Milk",
+    "Soy Milk",
+    "None / Black",
+]
+
+ALLOWED_SWEETNESS: list[str] = [
+    "0% (Unsweetened)",
+    "25%",
+    "50%",
+    "75%",
+    "100%",
+]
+
+kafka_producer: Producer | None = None
 
 
+# ---------------------------------------------------------------------------
+# Application Lifespan
+# ---------------------------------------------------------------------------
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifecycle manager: initialize connections on startup, clean up on shutdown."""
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manages application startup and graceful shutdown.
+
+    Initializes the shared Confluent Kafka Producer and verifies the
+    PostgreSQL connection pool. Flushes buffered producer messages on shutdown.
+
+    Args:
+        app: The FastAPI application instance.
+
+    Yields:
+        None
+    """
     global kafka_producer
-    print(f"🚀 [API Startup] Connecting Kafka producer to {BOOTSTRAP_SERVER}...")
+    logger.info("Initializing Kafka producer (bootstrap.servers=%s)", BOOTSTRAP_SERVER)
     try:
         kafka_producer = Producer({
             "bootstrap.servers": BOOTSTRAP_SERVER,
@@ -54,33 +93,33 @@ async def lifespan(app: FastAPI):
             "acks": "all",
             "broker.address.family": "v4",
         })
-        print("✅ [API Startup] Kafka producer ready.")
-    except Exception as e:
-        print(f"⚠️ [API Startup Warning] Could not initialize Kafka producer: {e}")
+        logger.info("Kafka producer initialized successfully.")
+    except Exception as exc:
+        logger.warning("Could not initialize Kafka producer on startup: %s", exc)
 
-    # Verify DB connection pool
     if db.check_db_health():
-        print("✅ [API Startup] PostgreSQL connection verified.")
+        logger.info("PostgreSQL database connection pool verified.")
     else:
-        print("⚠️ [API Startup Warning] PostgreSQL check failed on startup.")
+        logger.warning("PostgreSQL database health check failed on startup.")
 
     yield
 
-    # Shutdown
     if kafka_producer:
-        print("🛑 [API Shutdown] Flushing Kafka producer queue...")
+        logger.info("Flushing Kafka producer message queue before shutdown...")
         kafka_producer.flush(timeout=5.0)
-    print("👋 [API Shutdown] Matcha Order API shut down cleanly.")
+    logger.info("Matcha Order API shutdown complete.")
 
 
+# ---------------------------------------------------------------------------
+# FastAPI Application Definition
+# ---------------------------------------------------------------------------
 app = FastAPI(
     title="Matcha Café Order API",
-    description="Production-grade API for ordering matcha drinks, querying live menus, and tracking order progress.",
-    version="1.0.0",
+    description="Production-grade API for ordering ceremonial matcha, tracking finite cup lifecycles, and telemetry.",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
-# Enable CORS for web dashboards, mobile apps, or local frontend clients
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -89,7 +128,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static and character images assets
+# Static and Asset Mounts
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -98,86 +137,107 @@ if os.path.exists(static_dir):
         app.mount("/images", StaticFiles(directory=images_dir), name="images")
 
 
-# --- Pydantic Data Models ---
-
+# ---------------------------------------------------------------------------
+# Pydantic Schemas & DTOs
+# ---------------------------------------------------------------------------
 class ProductItem(BaseModel):
-    id: int
-    name: str
-    category: str
-    price: float
-    description: Optional[str] = None
-    in_stock: bool
+    """Catalog product representation."""
+    id: int = Field(..., description="Unique product identifier")
+    name: str = Field(..., description="Product name")
+    category: str = Field(..., description="Product category (Drink, Dessert, Pastry)")
+    price: float = Field(..., ge=0.0, description="Unit price in USD")
+    description: str | None = Field(None, description="Tasting notes and ingredients")
+    in_stock: bool = Field(True, description="Inventory availability flag")
 
 
 class MenuResponse(BaseModel):
-    products: List[ProductItem]
-    available_milks: List[str]
-    available_sweetness: List[str]
+    """Complete live menu with available customizations."""
+    products: list[ProductItem]
+    available_milks: list[str]
+    available_sweetness: list[str]
 
 
 class OrderItemInput(BaseModel):
-    drink_name: Optional[str] = Field(None, min_length=1, examples=["Strawberry Matcha Float"])
-    drink: Optional[str] = Field(None, min_length=1, examples=["Strawberry Matcha Float"])
-    milk: Optional[str] = "Oat Milk"
-    sweetness: Optional[str] = "50%"
+    """Line item in a customer order tray."""
+    drink_name: str | None = Field(None, min_length=1, examples=["Strawberry Matcha Float"])
+    drink: str | None = Field(None, min_length=1, examples=["Strawberry Matcha Float"])
+    milk: str | None = Field("Oat Milk", examples=["Oat Milk"])
+    sweetness: str | None = Field("50%", examples=["50%"])
     quantity: int = Field(1, ge=1, le=20, examples=[1])
 
     def get_drink_name(self) -> str:
-        return self.drink_name or self.drink or "Matcha Special"
+        """Resolves the normalized item title."""
+        return (self.drink_name or self.drink or "Matcha Special").strip()
 
 
 class OrderCreateRequest(BaseModel):
+    """Payload to create a new order."""
     customer_name: str = Field(..., min_length=1, max_length=100, examples=["Maya"])
-    items: Optional[List[OrderItemInput]] = None
-    drink_name: Optional[str] = Field(None, examples=["Strawberry Matcha Float"])
-    drink: Optional[str] = Field(None, examples=["Strawberry Matcha Float"])
-    milk: Optional[str] = Field("Oat Milk", examples=["Oat Milk"])
-    sweetness: Optional[str] = Field("50%", examples=["50%"])
-    dining_option: Optional[str] = Field("take_away", examples=["dine_in", "take_away"])
+    items: list[OrderItemInput] | None = None
+    drink_name: str | None = Field(None, examples=["Strawberry Matcha Float"])
+    drink: str | None = Field(None, examples=["Strawberry Matcha Float"])
+    milk: str | None = Field("Oat Milk", examples=["Oat Milk"])
+    sweetness: str | None = Field("50%", examples=["50%"])
+    dining_option: str | None = Field("take_away", examples=["dine_in", "take_away"])
 
 
 class OrderResponse(BaseModel):
+    """Response returned upon successful order ingestion."""
     order_id: str
     customer_name: str
     drink_name: str
-    drink: Optional[str] = None
-    items: Optional[List[Dict[str, Any]]] = None
-    milk: Optional[str] = None
-    sweetness: Optional[str] = None
+    drink: str | None = None
+    items: list[dict[str, Any]] | None = None
+    milk: str | None = None
+    sweetness: str | None = None
     price: float
     status: str
     ordered_at: str
+    dining_option: str = "take_away"
     message: str
 
 
 class OrderStatusResponse(BaseModel):
+    """Full detail response for an existing order."""
     order_id: str
     customer_name: str
     drink_name: str
-    items: Optional[List[Dict[str, Any]]] = None
-    milk: Optional[str] = None
-    sweetness: Optional[str] = None
+    items: list[dict[str, Any]] | None = None
+    milk: str | None = None
+    sweetness: str | None = None
     price: float
-    cup_code: Optional[str] = None
-    cup_codes: Optional[List[str]] = None
+    cup_code: str | None = None
+    cup_codes: list[str] | None = None
     status: str
-    prepared_by: Optional[str] = None
-    ordered_at: Optional[str] = None
-    ready_at: Optional[str] = None
+    prepared_by: str | None = None
+    ordered_at: str | None = None
+    ready_at: str | None = None
+    dining_option: str | None = "take_away"
 
 
 class HealthResponse(BaseModel):
+    """Liveness and readiness probe response."""
     status: str
     database: str
     kafka: str
     timestamp: str
 
 
-# --- Endpoints ---
+class SeatOrderRequest(BaseModel):
+    """Payload for seat-specific dining room order."""
+    seat_number: int = Field(..., ge=1, le=12)
+    character_name: str | None = None
+    drink_name: str | None = None
+    milk: str | None = "Oat Milk"
+    sweetness: str | None = "50%"
 
+
+# ---------------------------------------------------------------------------
+# API Routes: Core & Observability
+# ---------------------------------------------------------------------------
 @app.get("/", tags=["General"])
-def root():
-    """Serve the modern Matcha Café ordering web application."""
+def root() -> Any:
+    """Serves the web client application or welcoming metadata."""
     index_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
@@ -188,7 +248,8 @@ def root():
 
 
 @app.get("/api", tags=["General"])
-def api_endpoints_index():
+def api_endpoints_index() -> dict[str, Any]:
+    """Returns top-level endpoint directory and API discovery links."""
     return {
         "message": "🍵 Welcome to the Matcha Café Order API!",
         "documentation": "/docs",
@@ -198,13 +259,16 @@ def api_endpoints_index():
             "place_order": "POST /orders",
             "order_status": "/orders/{order_id}",
             "health": "/health",
+            "restaurant_diners": "/restaurant/diners",
+            "restaurant_state": "/restaurant/state",
+            "analytics": "/analytics",
         },
     }
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Observability"])
-def health_check():
-    """Liveness & Readiness probe verifying PostgreSQL and Kafka health."""
+def health_check() -> dict[str, str]:
+    """Liveness & readiness health probe verifying PostgreSQL and Kafka."""
     db_ok = db.check_db_health()
     kafka_ok = kafka_producer is not None
 
@@ -219,11 +283,8 @@ def health_check():
 
 
 @app.get("/menu", response_model=MenuResponse, tags=["Menu & Products"])
-def get_live_menu():
-    """
-    Fetches the live menu directly from PostgreSQL 'products' table.
-    Ensures clients always see real-time prices and stock availability.
-    """
+def get_live_menu() -> dict[str, Any]:
+    """Fetches the real-time product menu from the database."""
     products = db.get_menu()
     return {
         "products": products,
@@ -232,14 +293,29 @@ def get_live_menu():
     }
 
 
-@app.post("/orders", response_model=OrderResponse, status_code=status.HTTP_201_CREATED, tags=["Orders"])
-def place_order(order: OrderCreateRequest):
-    """
-    Submit a new matcha order:
-    1. Validates that the requested drink exists in the database and is in stock.
-    2. Resolves the authoritative price from PostgreSQL (preventing client price tampering).
-    3. Persists the order to PostgreSQL with status 'PENDING'.
-    4. Produces the order event to the Kafka 'matcha-orders' topic for the barista.
+# ---------------------------------------------------------------------------
+# API Routes: Order Ingestion & Lifecycle
+# ---------------------------------------------------------------------------
+@app.post(
+    "/orders",
+    response_model=OrderResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Orders"],
+)
+def place_order(order: OrderCreateRequest) -> dict[str, Any]:
+    """Submits a new order to the café.
+
+    Validates item availability and authoritative prices from PostgreSQL,
+    persists the pending record, and produces an order event to Kafka.
+
+    Args:
+        order: Validated order request.
+
+    Returns:
+        dict[str, Any]: Ingested order response.
+
+    Raises:
+        HTTPException: On validation, capacity, or persistence failures.
     """
     global kafka_producer
 
@@ -250,27 +326,29 @@ def place_order(order: OrderCreateRequest):
             detail="Customer name is required and cannot be empty.",
         )
 
-    # Normalize input into a list of items
-    items_input: List[OrderItemInput] = []
+    # Normalize single drink vs multi-item list
+    items_input: list[OrderItemInput] = []
     if order.items and len(order.items) > 0:
         items_input = order.items
     elif order.drink_name or order.drink:
         dname = order.drink_name or order.drink
-        items_input = [OrderItemInput(
-            drink_name=dname,
-            drink=dname,
-            milk=order.milk,
-            sweetness=order.sweetness,
-            quantity=1,
-        )]
+        items_input = [
+            OrderItemInput(
+                drink_name=dname,
+                drink=dname,
+                milk=order.milk,
+                sweetness=order.sweetness,
+                quantity=1,
+            )
+        ]
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Order must contain either 'items' list or a 'drink_name'.",
         )
 
-    processed_items = []
-    total_price = 0.0
+    processed_items: list[dict[str, Any]] = []
+    total_price: float = 0.0
 
     for item in items_input:
         target_name = item.get_drink_name()
@@ -307,30 +385,34 @@ def place_order(order: OrderCreateRequest):
             "is_drink": is_drink,
         })
 
-    # Validate cup limit for drinks
+    # Validate finite ceramic cup limits
     drink_count = sum(it["quantity"] for it in processed_items if it.get("is_drink", False))
     max_cups = db.get_total_cups_count()
     if drink_count > max_cups:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order exceeds café cup capacity. You selected {drink_count} drinks, but our café limit is {max_cups} cups per order.",
+            detail=(
+                f"Order exceeds café cup capacity. You requested {drink_count} drinks, "
+                f"but our total café limit is {max_cups} cups per order."
+            ),
         )
 
     order_id = f"ORD-{random.randint(1000, 9999)}"
     ordered_at = datetime.now(timezone.utc).isoformat()
     summary_drink = ", ".join(f"{it['quantity']}x {it['drink_name']}" for it in processed_items)
+    dining_opt = order.dining_option or "take_away"
 
-    # 2. Persist order in DB as PENDING
+    # Persist pending order to database
     success = db.create_pending_order(
         order_id=order_id,
-        customer_name=order.customer_name.strip(),
+        customer_name=cust_name,
         drink_name=summary_drink,
         milk=processed_items[0]["milk"] if len(processed_items) == 1 else None,
         sweetness=processed_items[0]["sweetness"] if len(processed_items) == 1 else None,
         price=round(total_price, 2),
         ordered_at=ordered_at,
         items=processed_items,
-        dining_option=order.dining_option or "take_away",
+        dining_option=dining_opt,
     )
     if not success:
         raise HTTPException(
@@ -338,17 +420,18 @@ def place_order(order: OrderCreateRequest):
             detail="Failed to record pending order in the database.",
         )
 
-    # 3. Produce to Kafka topic
+    # Publish order event to Kafka topic
     order_event = {
         "order_id": order_id,
-        "client_name": order.customer_name.strip(),
+        "client_name": cust_name,
+        "customer_name": cust_name,
         "drink_name": summary_drink,
         "drink": summary_drink,
         "price": round(total_price, 2),
         "total_price": round(total_price, 2),
         "items": processed_items,
         "ordered_at": ordered_at,
-        "dining_option": order.dining_option or "take_away",
+        "dining_option": dining_opt,
     }
 
     if kafka_producer:
@@ -359,19 +442,19 @@ def place_order(order: OrderCreateRequest):
                 value=json.dumps(order_event).encode("utf-8"),
             )
             kafka_producer.flush(2.0)
-        except Exception as e:
-            print(f"[API Error] Failed to publish order {order_id} to Kafka: {e}")
+            logger.info("Published order event %s to topic %s", order_id, ORDERS_TOPIC)
+        except Exception as exc:
+            logger.error("Failed to publish order %s to Kafka: %s", order_id, exc)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Order recorded in database, but failed to queue to barista Kafka topic.",
             )
     else:
-        print("[API Warning] Kafka producer not initialized; order recorded in DB only.")
+        logger.warning("Kafka producer not available; order %s recorded in database only.", order_id)
 
-    dining_opt = order.dining_option or "take_away"
     return {
         "order_id": order_id,
-        "customer_name": order.customer_name.strip(),
+        "customer_name": cust_name,
         "drink_name": summary_drink,
         "drink": summary_drink,
         "items": processed_items,
@@ -381,16 +464,16 @@ def place_order(order: OrderCreateRequest):
         "status": "PENDING",
         "ordered_at": ordered_at,
         "dining_option": dining_opt,
-        "message": f"Order {order_id} ({len(processed_items)} items) submitted to the barista. Sit back and relax while it is prepared!",
+        "message": (
+            f"Order {order_id} ({len(processed_items)} items) submitted to the barista. "
+            "Sit back and relax while it is prepared!"
+        ),
     }
 
 
 @app.get("/orders/{order_id}", response_model=OrderStatusResponse, tags=["Orders"])
-def get_order_status(order_id: str):
-    """
-    Check the live status of an order (PENDING, PREPARING, or READY).
-    Clients can poll this endpoint instead of requiring raw Kafka consumer listeners.
-    """
+def get_order_status(order_id: str) -> dict[str, Any]:
+    """Retrieves live status and fulfillment details for an order."""
     order = db.get_order(order_id)
     if not order:
         raise HTTPException(
@@ -400,36 +483,39 @@ def get_order_status(order_id: str):
     return order
 
 
-@app.get("/orders", response_model=List[OrderStatusResponse], tags=["Orders"])
+@app.get("/orders", response_model=list[OrderStatusResponse], tags=["Orders"])
 def list_orders(
-    customer: Optional[str] = Query(None, description="Filter by customer name"),
+    customer: str | None = Query(None, description="Filter by customer name"),
     limit: int = Query(20, ge=1, le=100, description="Max orders to return"),
-):
-    """List recent orders with optional filtering."""
+) -> list[dict[str, Any]]:
+    """Lists recent orders with optional filtering by customer."""
     return db.get_recent_orders(limit=limit, customer_name=customer)
 
 
 @app.get("/customers/{customer_name}", tags=["Customers"])
-def get_customer_profile(customer_name: str):
-    """Fetch customer loyalty metrics and automatically discovered preferences."""
+def get_customer_profile(customer_name: str) -> dict[str, Any]:
+    """Fetches customer loyalty profile and dynamic preferences."""
     profile = db.get_customer_profile(customer_name)
     if not profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Customer '{customer_name}' has not placed any orders yet.",
         )
+    return profile
+
+
+# ---------------------------------------------------------------------------
+# API Routes: Cup Inventory & Dishwashing
+# ---------------------------------------------------------------------------
 @app.get("/cups", tags=["Cups & Inventory"])
-def get_cup_inventory():
-    """Returns the live cup inventory breakdown (Shelf, Barista, Customer, Dishwasher)."""
+def get_cup_inventory() -> dict[str, Any]:
+    """Returns the live cup inventory breakdown across shelf, barista, customer, and dishwasher."""
     return db.get_cup_inventory_summary()
 
 
 @app.post("/cups/{cup_code}/return", tags=["Cups & Inventory"])
-def return_cup(cup_code: str, customer_name: Optional[str] = None):
-    """
-    Customer returns their used cup to the café dishwasher station.
-    Emits an event to 'matcha-cup-returns' for the automated dishwasher worker.
-    """
+def return_cup(cup_code: str, customer_name: str | None = None) -> dict[str, str]:
+    """Returns a used cup to the dishwasher station."""
     global kafka_producer
     event = {
         "cup_code": cup_code,
@@ -437,25 +523,26 @@ def return_cup(cup_code: str, customer_name: Optional[str] = None):
         "returned_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    # Transition cup status in database
-    success = db.return_cup_to_dishwasher(cup_code, actor=f"Customer: {customer_name or 'Guest'}")
+    success = db.return_cup_to_dishwasher(
+        cup_code, actor=f"Customer: {customer_name or 'Guest'}"
+    )
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Cup '{cup_code}' not found or could not be returned.",
         )
 
-    # Publish return event to Kafka
     if kafka_producer:
         try:
             kafka_producer.produce(
-                topic="matcha-cup-returns",
+                topic=RETURNS_TOPIC,
                 key=cup_code.encode("utf-8"),
                 value=json.dumps(event).encode("utf-8"),
             )
             kafka_producer.flush(2.0)
-        except Exception as e:
-            print(f"[API Error] Failed to publish cup return event: {e}")
+            logger.info("Published return event for %s to topic %s", cup_code, RETURNS_TOPIC)
+        except Exception as exc:
+            logger.error("Failed to publish cup return event for %s: %s", cup_code, exc)
 
     return {
         "cup_code": cup_code,
@@ -464,52 +551,34 @@ def return_cup(cup_code: str, customer_name: Optional[str] = None):
     }
 
 
+# ---------------------------------------------------------------------------
+# API Routes: Restaurant Visualization & Analytics
+# ---------------------------------------------------------------------------
 @app.get("/restaurant/diners", tags=["Restaurant Visualisation"])
-def get_active_diners():
-    """
-    Returns the current state of the 12-seat dining table for the 3D scene.
-    Each seat is either empty or occupied by a dine-in customer represented
-    by a randomly assigned Attack on Titan character.
-    Customers auto-leave after 45 seconds from when their order was placed.
-    """
+def get_active_diners() -> dict[str, Any]:
+    """Returns the live state of the 12-seat Mess Hall table and real-time cup metrics."""
     return db.get_active_diners()
 
 
+@app.get("/restaurant/state", tags=["Restaurant Visualisation"])
+def get_restaurant_realtime_state() -> dict[str, Any]:
+    """Returns full Attack on Titan themed restaurant state."""
+    return db.get_restaurant_state()
+
+
 @app.get("/analytics", tags=["Analytics & Logs"])
-def get_analytics(timeframe: str = Query("minutes", description="Aggregation timeframe: minutes, hours, or days")):
-    """
-    Returns aggregated metrics, timeseries breakdown, popular creations,
-    and recent cup lifecycle audit log events across minutes, hours, or days.
-    """
+def get_analytics(
+    timeframe: str = Query("minutes", description="Aggregation timeframe: minutes, hours, or days"),
+) -> dict[str, Any]:
+    """Returns aggregated timeseries breakdown, popular items, and cup audit logs."""
     if timeframe not in ("minutes", "hours", "days"):
         timeframe = "minutes"
     return db.get_analytics_breakdown(timeframe)
 
 
-@app.get("/restaurant/state", tags=["Restaurant Visualisation"])
-def get_restaurant_realtime_state():
-    """
-    Returns real-time visualization state of the Attack on Titan restaurant:
-    - 12 seats on the Grand Survey Corps Mess Hall Table (6 North, 6 South)
-    - Active AoT characters, allocated cups, and current order status
-    - Barista Prep Station & Captain Levi's Cleaning & Sanitizing Bay
-    """
-    return db.get_restaurant_state()
-
-
-class SeatOrderRequest(BaseModel):
-    seat_number: int = Field(..., ge=1, le=12)
-    character_name: Optional[str] = None
-    drink_name: Optional[str] = None
-    milk: Optional[str] = "Oat Milk"
-    sweetness: Optional[str] = "50%"
-
-
 @app.post("/restaurant/order-seat", tags=["Restaurant Visualisation"])
-def order_for_seat(req: SeatOrderRequest):
-    """
-    Directly order for a specific seat / Attack on Titan character in the Mess Hall.
-    """
+def order_for_seat(req: SeatOrderRequest) -> dict[str, Any]:
+    """Places an order on behalf of a specific seat in the Mess Hall."""
     char = next((c for c in db.AOT_CHARACTERS if c["seat_number"] == req.seat_number), None)
     char_name = req.character_name or (char["name"] if char else f"Cadet #{req.seat_number}")
     dname = req.drink_name or (char["favorite_drink"] if char else "Strawberry Matcha Float")
@@ -520,17 +589,15 @@ def order_for_seat(req: SeatOrderRequest):
         drink=dname,
         milk=req.milk,
         sweetness=req.sweetness,
+        dining_option="dine_in",
     )
     return place_order(order_create)
 
 
 @app.post("/restaurant/simulate-rush", tags=["Restaurant Visualisation"])
-def simulate_scout_rush():
-    """
-    Simulates a Scout Regiment mess hall rush! Places orders for 3-4 Attack on Titan characters
-    so the 12-person table fills with activity and cups circulate in real-time.
-    """
-    rush_orders = []
+def simulate_scout_rush() -> dict[str, Any]:
+    """Simulates a dining rush by creating concurrent orders for Scout Regiment cadets."""
+    rush_orders: list[dict[str, Any]] = []
     candidates = random.sample(db.AOT_CHARACTERS, k=3)
     for char in candidates:
         try:
@@ -540,11 +607,13 @@ def simulate_scout_rush():
                 drink=char["favorite_drink"],
                 milk="Oat Milk",
                 sweetness="50%",
+                dining_option="dine_in",
             )
             res = place_order(ord_req)
             rush_orders.append(res)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Simulate rush order failed for %s: %s", char.get("name"), exc)
+
     return {
         "message": f"Scout Regiment meal rush triggered for {len(rush_orders)} cadets!",
         "orders": rush_orders,
@@ -555,4 +624,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("api:app", host="0.0.0.0", port=port, reload=True)
-

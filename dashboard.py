@@ -1,27 +1,50 @@
 #!/usr/bin/env python3
-"""
-Matcha Café - Manager & Analytics Dashboard
+"""Matcha Café - Manager & Analytics Terminal Dashboard.
 
-Queries PostgreSQL to display:
-1. What we offer (Products catalog & pricing)
-2. Customers table (Loyalty, total spent, preferences)
-3. Total café metrics (Revenue, top-selling drinks)
+Directly queries PostgreSQL to display:
+1. Product catalog, pricing, and stock status.
+2. Customer loyalty metrics and auto-discovered preferences.
+3. Café-wide revenue and total item volume.
+4. Finite ceramic cup lifecycle state machine tracking.
 """
 
-from db import get_db_connection
+from __future__ import annotations
+
+import logging
+import os
+import sys
+from typing import Any
+
+import db
+from db import CupStatus, get_db_connection
+
+# ---------------------------------------------------------------------------
+# Logging Configuration
+# ---------------------------------------------------------------------------
+logger = logging.getLogger("matcha.dashboard")
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(
+        logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s")
+    )
+    logger.addHandler(_handler)
+    logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
 
 
 class Color:
+    """Terminal ANSI escape codes for dashboard aesthetics."""
     GREEN = "\033[92m"
     CYAN = "\033[96m"
     YELLOW = "\033[93m"
     MAGENTA = "\033[95m"
+    RED = "\033[91m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
     RESET = "\033[0m"
 
 
-def print_dashboard():
+def print_dashboard() -> None:
+    """Queries PostgreSQL and renders a formatted terminal dashboard."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -66,7 +89,9 @@ def print_dashboard():
 
                 # 3. Overall Café Performance
                 cur.execute("SELECT COALESCE(SUM(total_spent), 0), COALESCE(SUM(total_orders), 0) FROM customers;")
-                total_rev, total_drinks = cur.fetchone()
+                row = cur.fetchone()
+                total_rev = float(row[0]) if row else 0.0
+                total_drinks = int(row[1]) if row else 0
 
                 print(f"{Color.BOLD}💰 3. CAFÉ REVENUE & TOTALS:{Color.RESET}")
                 print(f"   • Total Revenue : {Color.BOLD}{Color.GREEN}${total_rev:.2f}{Color.RESET}")
@@ -74,11 +99,13 @@ def print_dashboard():
                 print()
 
                 # 4. Cup Inventory & Tracking
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT cup_code, status, current_order_id, current_customer, total_uses
                     FROM cups
                     ORDER BY cup_code ASC;
-                """)
+                    """
+                )
                 cups = cur.fetchall()
                 if cups:
                     print(f"{Color.BOLD}🍵 4. CUP INVENTORY & LIFECYCLE (Fixed Pool of {len(cups)}):{Color.RESET}")
@@ -86,26 +113,26 @@ def print_dashboard():
                     print(f" {'Cup Code':<10} {'Status':<20} {'Current Holder / Order':<30} {'Uses'}")
                     print(f"{Color.DIM}{'─' * 74}{Color.RESET}")
                     for c_code, c_status, c_order, c_cust, c_uses in cups:
-                        if c_status == "CLEAN_ON_SHELF":
+                        if c_status == CupStatus.CLEAN_ON_SHELF:
                             status_str = f"{Color.GREEN}CLEAN_ON_SHELF{Color.RESET}"
                             holder = f"{Color.DIM}Ready on shelf{Color.RESET}"
-                        elif c_status == "IN_BREWING":
+                        elif c_status == CupStatus.IN_BREWING:
                             status_str = f"{Color.YELLOW}IN_BREWING{Color.RESET}"
                             holder = f"Barista (Order {c_order})"
-                        elif c_status == "WITH_CUSTOMER":
+                        elif c_status == CupStatus.WITH_CUSTOMER:
                             status_str = f"{Color.CYAN}WITH_CUSTOMER{Color.RESET}"
                             holder = f"{c_cust} ({c_order})"
-                        elif c_status == "IN_DISHWASHER":
+                        elif c_status == CupStatus.IN_DISHWASHER:
                             status_str = f"{Color.MAGENTA}IN_DISHWASHER{Color.RESET}"
-                            holder = f"Washing & Sanitizing"
+                            holder = "Washing & Sanitizing"
                         else:
                             status_str = c_status
                             holder = "-"
                         print(f" {Color.BOLD}{c_code:<10}{Color.RESET} {status_str:<30} {holder:<30} {c_uses}")
                     print()
 
-    except Exception as e:
-        print(f"[Error] Could not load dashboard: {e}")
+    except Exception as exc:
+        logger.error("Could not load dashboard: %s", exc, exc_info=True)
 
 
 if __name__ == "__main__":
