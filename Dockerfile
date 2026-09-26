@@ -6,8 +6,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all application and database code
+# Copy all application, database, and static web code
 COPY waiter.py client.py db.py dashboard.py api.py dishwasher.py ./
+COPY static ./static
 
 # Default to running the waiter service
 CMD ["python", "-u", "waiter.py"]

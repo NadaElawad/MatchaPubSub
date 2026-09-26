@@ -22,6 +22,7 @@ from typing import List, Optional
 from confluent_kafka import Producer
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 import db
@@ -149,11 +150,24 @@ class HealthResponse(BaseModel):
 
 @app.get("/", tags=["General"])
 def root():
+    """Serve the modern Matcha Café ordering web application."""
+    index_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {
+        "message": "🍵 Welcome to the Matcha Café Order API!",
+        "documentation": "/docs",
+    }
+
+
+@app.get("/api", tags=["General"])
+def api_endpoints_index():
     return {
         "message": "🍵 Welcome to the Matcha Café Order API!",
         "documentation": "/docs",
         "endpoints": {
             "menu": "/menu",
+            "cups": "/cups",
             "place_order": "POST /orders",
             "order_status": "/orders/{order_id}",
             "health": "/health",
