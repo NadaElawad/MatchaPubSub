@@ -17,7 +17,7 @@ import random
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from confluent_kafka import Producer
 from fastapi import FastAPI, HTTPException, Query, status
@@ -106,9 +106,22 @@ class MenuResponse(BaseModel):
     available_sweetness: List[str]
 
 
+class OrderItemInput(BaseModel):
+    drink_name: Optional[str] = Field(None, min_length=1, examples=["Strawberry Matcha Float"])
+    drink: Optional[str] = Field(None, min_length=1, examples=["Strawberry Matcha Float"])
+    milk: Optional[str] = "Oat Milk"
+    sweetness: Optional[str] = "50%"
+    quantity: int = Field(1, ge=1, le=20, examples=[1])
+
+    def get_drink_name(self) -> str:
+        return self.drink_name or self.drink or "Matcha Special"
+
+
 class OrderCreateRequest(BaseModel):
     customer_name: str = Field(..., min_length=1, max_length=100, examples=["Maya"])
-    drink: str = Field(..., min_length=1, examples=["Strawberry Matcha Float"])
+    items: Optional[List[OrderItemInput]] = None
+    drink_name: Optional[str] = Field(None, examples=["Strawberry Matcha Float"])
+    drink: Optional[str] = Field(None, examples=["Strawberry Matcha Float"])
     milk: Optional[str] = Field("Oat Milk", examples=["Oat Milk"])
     sweetness: Optional[str] = Field("50%", examples=["50%"])
 
@@ -116,9 +129,11 @@ class OrderCreateRequest(BaseModel):
 class OrderResponse(BaseModel):
     order_id: str
     customer_name: str
-    drink: str
-    milk: Optional[str]
-    sweetness: Optional[str]
+    drink_name: str
+    drink: Optional[str] = None
+    items: Optional[List[Dict[str, Any]]] = None
+    milk: Optional[str] = None
+    sweetness: Optional[str] = None
     price: float
     status: str
     ordered_at: str
@@ -129,10 +144,12 @@ class OrderStatusResponse(BaseModel):
     order_id: str
     customer_name: str
     drink_name: str
-    milk: Optional[str]
-    sweetness: Optional[str]
+    items: Optional[List[Dict[str, Any]]] = None
+    milk: Optional[str] = None
+    sweetness: Optional[str] = None
     price: float
     cup_code: Optional[str] = None
+    cup_codes: Optional[List[str]] = None
     status: str
     prepared_by: Optional[str] = None
     ordered_at: Optional[str] = None
@@ -216,44 +233,109 @@ def place_order(order: OrderCreateRequest):
     """
     global kafka_producer
 
-    # 1. Authoritatively validate product from PostgreSQL
-    product = db.get_product_by_name(order.drink)
-    if not product:
-        available = [p["name"] for p in db.get_menu()]
+    cust_name = order.customer_name.strip()
+    if not cust_name:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Drink '{order.drink}' is not on the menu. Available items: {', '.join(available)}",
+            detail="Customer name is required and cannot be empty.",
         )
 
-    if not product.get("in_stock", True):
+    # Normalize input into a list of items
+    items_input: List[OrderItemInput] = []
+    if order.items and len(order.items) > 0:
+        items_input = order.items
+    elif order.drink_name or order.drink:
+        dname = order.drink_name or order.drink
+        items_input = [OrderItemInput(
+            drink_name=dname,
+            drink=dname,
+            milk=order.milk,
+            sweetness=order.sweetness,
+            quantity=1,
+        )]
+    else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Drink '{product['name']}' is currently out of stock.",
+            detail="Order must contain either 'items' list or a 'drink_name'.",
         )
 
-    authoritative_price = product["price"]
+    processed_items = []
+    total_price = 0.0
+
+    for item in items_input:
+        target_name = item.get_drink_name()
+        product = db.get_product_by_name(target_name)
+        if not product:
+            available = [p["name"] for p in db.get_menu()]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Item '{target_name}' is not on the menu. Available items: {', '.join(available)}",
+            )
+
+        if not product.get("in_stock", True):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Item '{product['name']}' is currently out of stock.",
+            )
+
+        is_drink = (product.get("category", "Drink").lower() == "drink")
+        unit_price = float(product["price"])
+        qty = max(1, item.quantity)
+        line_total = unit_price * qty
+        total_price += line_total
+
+        processed_items.append({
+            "drink_name": product["name"],
+            "name": product["name"],
+            "drink": product["name"],
+            "category": product["category"],
+            "price": unit_price,
+            "quantity": qty,
+            "line_total": line_total,
+            "milk": item.milk if is_drink else None,
+            "sweetness": item.sweetness if is_drink else None,
+            "is_drink": is_drink,
+        })
+
+    # Validate cup limit for drinks
+    drink_count = sum(it["quantity"] for it in processed_items if it.get("is_drink", False))
+    max_cups = db.get_total_cups_count()
+    if drink_count > max_cups:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order exceeds café cup capacity. You selected {drink_count} drinks, but our café limit is {max_cups} cups per order.",
+        )
+
     order_id = f"ORD-{random.randint(1000, 9999)}"
     ordered_at = datetime.now(timezone.utc).isoformat()
+    summary_drink = ", ".join(f"{it['quantity']}x {it['drink_name']}" for it in processed_items)
 
     # 2. Persist order in DB as PENDING
-    db.create_pending_order(
+    success = db.create_pending_order(
         order_id=order_id,
         customer_name=order.customer_name.strip(),
-        drink_name=product["name"],
-        milk=order.milk,
-        sweetness=order.sweetness,
-        price=authoritative_price,
+        drink_name=summary_drink,
+        milk=processed_items[0]["milk"] if len(processed_items) == 1 else None,
+        sweetness=processed_items[0]["sweetness"] if len(processed_items) == 1 else None,
+        price=round(total_price, 2),
         ordered_at=ordered_at,
+        items=processed_items,
     )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to record pending order in the database.",
+        )
 
     # 3. Produce to Kafka topic
     order_event = {
         "order_id": order_id,
         "client_name": order.customer_name.strip(),
-        "drink": product["name"],
-        "milk": order.milk,
-        "sweetness": order.sweetness,
-        "price": authoritative_price,
+        "drink_name": summary_drink,
+        "drink": summary_drink,
+        "price": round(total_price, 2),
+        "total_price": round(total_price, 2),
+        "items": processed_items,
         "ordered_at": ordered_at,
     }
 
@@ -277,13 +359,15 @@ def place_order(order: OrderCreateRequest):
     return {
         "order_id": order_id,
         "customer_name": order.customer_name.strip(),
-        "drink": product["name"],
-        "milk": order.milk,
-        "sweetness": order.sweetness,
-        "price": authoritative_price,
+        "drink_name": summary_drink,
+        "drink": summary_drink,
+        "items": processed_items,
+        "milk": processed_items[0]["milk"] if len(processed_items) == 1 else None,
+        "sweetness": processed_items[0]["sweetness"] if len(processed_items) == 1 else None,
+        "price": round(total_price, 2),
         "status": "PENDING",
         "ordered_at": ordered_at,
-        "message": f"Order {order_id} submitted to the barista. Sit back and relax while it is prepared!",
+        "message": f"Order {order_id} ({len(processed_items)} items) submitted to the barista. Sit back and relax while it is prepared!",
     }
 
 

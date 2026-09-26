@@ -3,6 +3,7 @@ Matcha Café - PostgreSQL Database Helper Module
 Production-ready with ThreadedConnectionPool, dynamic catalog queries, and order lifecycle tracking.
 """
 
+import json
 import os
 from contextlib import contextmanager
 import psycopg2
@@ -109,22 +110,26 @@ def get_product_price(drink_name):
     return 6.50
 
 
-def create_pending_order(order_id, customer_name, drink_name, milk, sweetness, price, ordered_at=None):
+def create_pending_order(order_id, customer_name, drink_name, milk, sweetness, price, ordered_at=None, items=None, cup_codes=None):
     """
     Records an incoming order with status 'PENDING' before the barista begins preparation.
+    Supports single drinks and multi-item orders.
     """
     try:
+        items_json = json.dumps(items) if items is not None else None
+        cup_code_str = ", ".join(cup_codes) if cup_codes else None
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
                     INSERT INTO orders (
-                        order_id, customer_name, drink_name, milk, sweetness, price, status, ordered_at, ready_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, 'PENDING', COALESCE(%s, NOW()), NULL)
+                        order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, ordered_at, ready_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'PENDING', COALESCE(%s, NOW()), NULL)
                     ON CONFLICT (order_id) DO UPDATE SET
+                        items = COALESCE(EXCLUDED.items, orders.items),
                         status = 'PENDING';
                     """,
-                    (order_id, customer_name, drink_name, milk, sweetness, price, ordered_at),
+                    (order_id, customer_name, drink_name, milk, sweetness, price, cup_code_str, cup_codes, items_json, ordered_at),
                 )
                 conn.commit()
                 return True
@@ -162,7 +167,7 @@ def get_order(order_id):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
+                    SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
                     FROM orders
                     WHERE order_id = %s;
                     """,
@@ -189,7 +194,7 @@ def get_recent_orders(limit=20, customer_name=None):
                 if customer_name:
                     cur.execute(
                         """
-                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
+                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
                         FROM orders
                         WHERE LOWER(customer_name) = LOWER(%s)
                         ORDER BY ordered_at DESC
@@ -200,7 +205,7 @@ def get_recent_orders(limit=20, customer_name=None):
                 else:
                     cur.execute(
                         """
-                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
+                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
                         FROM orders
                         ORDER BY ordered_at DESC
                         LIMIT %s;
@@ -261,6 +266,11 @@ def record_order(order_data):
     sweetness = order_data.get("sweetness")
     price = float(order_data.get("price", 6.50))
     cup_code = order_data.get("cup_code")
+    cup_codes = order_data.get("cup_codes")
+    items = order_data.get("items")
+    items_json = json.dumps(items) if items is not None else None
+    if not cup_code and cup_codes:
+        cup_code = ", ".join(cup_codes)
     status = order_data.get("status", "READY")
     prepared_by = order_data.get("prepared_by", "Kaito (Solo Waiter)")
     ordered_at = order_data.get("ordered_at")
@@ -273,15 +283,17 @@ def record_order(order_data):
                 cur.execute(
                     """
                     INSERT INTO orders (
-                        order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, NOW()), COALESCE(%s, NOW()))
+                        order_id, customer_name, drink_name, milk, sweetness, price, cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, NOW()), COALESCE(%s, NOW()))
                     ON CONFLICT (order_id) DO UPDATE SET
                         cup_code = COALESCE(EXCLUDED.cup_code, orders.cup_code),
+                        cup_codes = COALESCE(EXCLUDED.cup_codes, orders.cup_codes),
+                        items = COALESCE(EXCLUDED.items, orders.items),
                         status = EXCLUDED.status,
                         prepared_by = EXCLUDED.prepared_by,
                         ready_at = EXCLUDED.ready_at;
                     """,
-                    (order_id, customer_name, drink, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at),
+                    (order_id, customer_name, drink, milk, sweetness, price, cup_code, cup_codes, items_json, status, prepared_by, ordered_at, ready_at),
                 )
 
                 # 2. Upsert customer profile: increment total_spent and total_orders
@@ -598,4 +610,16 @@ def get_cup_audit_trail(cup_code=None, limit=20):
     except Exception as e:
         print(f"[DB Error] get_cup_audit_trail failed: {e}")
         return []
+
+
+def get_total_cups_count():
+    """Returns the total number of cups in the café pool (defaults to 12)."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM cups;")
+                row = cur.fetchone()
+                return int(row[0]) if row and row[0] is not None else 12
+    except Exception:
+        return 12
 

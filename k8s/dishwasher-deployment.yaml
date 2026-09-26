@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: dishwasher
-          image: matcha-cafe:v4
+          image: matcha-cafe:v12
           imagePullPolicy: IfNotPresent
           command: ["python", "-u", "dishwasher.py"]
           envFrom:

@@ -15,6 +15,7 @@ import json
 import os
 import signal
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -89,6 +90,44 @@ def main():
     print(f"{Color.BOLD}{Color.BLUE}│  Wash Cycle   : {wash_time:.1f}s                                    │{Color.RESET}")
     print(f"{Color.BOLD}{Color.BLUE}╰──────────────────────────────────────────────────────────╯{Color.RESET}")
     print(f"{Color.DIM}Listening for dirty cups returned by customers at the counter...{Color.RESET}\n")
+
+    def run_auto_busser():
+        """
+        Periodically clears finished cups from café tables after 5 minutes (realistic café turnover),
+        sanitizes them, and returns them to the clean shelf.
+        """
+        busser_timeout_secs = int(os.environ.get("CUP_BUSSER_TIMEOUT_SECONDS", "30"))  # Default: 30s = 0.5 min
+        print(f"  {Color.DIM}🧹 [Auto-Busser Active] Tables automatically bussed after {busser_timeout_secs // 60} mins.{Color.RESET}")
+        while running:
+            time.sleep(5)
+            try:
+                with db.get_db_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT cup_code, current_customer, current_order_id
+                            FROM cups
+                            WHERE (status = 'WITH_CUSTOMER' AND updated_at < NOW() - (%s || ' seconds')::INTERVAL)
+                               OR (status = 'IN_BREWING' AND updated_at < NOW() - INTERVAL '2 minutes')
+                               OR (status = 'IN_DISHWASHER' AND updated_at < NOW() - INTERVAL '1 minute');
+                        """, (busser_timeout_secs,))
+                        stale = cur.fetchall()
+                        for c_code, c_cust, c_order in stale:
+                            print(f"\n  {Color.BLUE}🧹 [Café Busser]{Color.RESET} Finished cup {Color.MAGENTA}{c_code}{Color.RESET} cleared from {c_cust}'s table (order: {c_order}).")
+                            db.return_cup_to_dishwasher(c_code, actor="Café Staff (Table Clearing)")
+                            time.sleep(2.0)
+                            db.sanitize_and_shelve_cup(c_code, actor="Automated Dishwasher")
+                            print(f"  {Color.GREEN}✨ [Dishwasher]{Color.RESET} {c_code} sanitized and returned to shelf!")
+                            if producer:
+                                producer.produce(
+                                    topic=clean_topic,
+                                    key=c_code.encode("utf-8"),
+                                    value=json.dumps({"cup_code": c_code, "status": "CLEAN_ON_SHELF"}).encode("utf-8"),
+                                )
+                                producer.flush()
+            except Exception as e:
+                print(f"⚠️ [Auto-Busser Warning] {e}")
+
+    threading.Thread(target=run_auto_busser, daemon=True).start()
 
     step_delay = wash_time / 3.0
     cups_washed = 0

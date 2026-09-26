@@ -142,27 +142,18 @@
       100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 168, 83, 0); }
     }
 
-    .cup-pills {
-      display: flex;
-      gap: 6px;
-      background: white;
-      padding: 4px 10px;
-      border-radius: var(--radius-full);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .cup-pill {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      display: flex;
+    .order-tray-badge {
+      display: inline-flex;
       align-items: center;
-      gap: 4px;
-    }
-
-    .cup-pill strong {
-      color: var(--matcha);
+      gap: 8px;
+      padding: 6px 14px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary-dark);
+      box-shadow: var(--shadow-sm);
     }
 
     /* Main Container */
@@ -269,37 +260,6 @@
       box-shadow: 0 0 0 4px rgba(46, 90, 39, 0.1);
     }
 
-    .customer-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .customer-chip {
-      background: white;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 5px 12px;
-      border-radius: var(--radius-full);
-      font-size: 0.8rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .customer-chip:hover {
-      border-color: var(--matcha);
-      color: var(--matcha);
-      background: var(--matcha-subtle);
-    }
-
-    .customer-chip.active {
-      background: var(--matcha);
-      border-color: var(--matcha);
-      color: white;
-      font-weight: 600;
-    }
 
     .loyalty-banner {
       display: none;
@@ -749,12 +709,14 @@
       color: #6C5874;
     }
 
-    .btn-return-cup {
+    /* Cart and Item Row Styles */
+    .btn-add-tray {
       width: 100%;
-      background: #F1F4EE;
-      color: var(--primary-dark);
-      border: 1.5px solid var(--border);
-      padding: 14px;
+      margin-top: 18px;
+      background: white;
+      color: var(--matcha);
+      border: 1.5px solid var(--matcha);
+      padding: 13px 20px;
       border-radius: var(--radius-md);
       font-family: inherit;
       font-size: 0.95rem;
@@ -764,33 +726,137 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-add-tray:hover {
+      background: var(--matcha);
+      color: white;
+      box-shadow: 0 4px 14px rgba(46, 90, 39, 0.2);
+    }
+
+    .btn-add-tray:disabled {
+      background: #F4F6F2;
+      border-color: var(--border);
+      color: var(--text-light);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .tray-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .tray-item:last-child {
+      border-bottom: none;
+    }
+
+    .tray-item-info {
+      flex: 1;
+    }
+
+    .tray-item-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .tray-item-meta {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .tray-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qty-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: white;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-dark);
+      transition: all 0.15s;
+    }
+
+    .qty-btn:hover {
+      background: var(--matcha-subtle);
+      border-color: var(--matcha);
+      color: var(--matcha);
+    }
+
+    .tray-item-qty {
+      font-size: 0.82rem;
+      font-weight: 700;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .tray-item-price {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--matcha);
+      min-width: 50px;
+      text-align: right;
+    }
+
+    .tray-item-del {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 2px 4px;
+      transition: color 0.15s;
+      line-height: 1;
+    }
+
+    .tray-item-del:hover {
+      color: var(--accent-coral);
+    }
+
+    .tray-empty-box {
+      padding: 28px 14px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+      background: #FAFCF9;
+      border-radius: var(--radius-sm);
+      border: 1.5px dashed var(--border);
+    }
+
+    .btn-new-order {
+      width: 100%;
+      padding: 13px;
+      border-radius: var(--radius-md);
+      background: white;
+      border: 1.5px solid var(--matcha);
+      color: var(--matcha);
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
       transition: all 0.2s;
     }
 
-    .btn-return-cup:hover {
-      background: #E5EBE1;
-      border-color: var(--matcha);
-    }
-
-    .btn-return-cup.returned {
-      background: var(--matcha-froth);
-      color: var(--matcha);
-      border-color: transparent;
-      cursor: default;
-    }
-
-    /* Live Dishwasher Animation Drawer */
-    .dishwasher-indicator-box {
-      margin-top: 14px;
-      padding: 12px 16px;
-      border-radius: var(--radius-md);
-      background: #EFF6FF;
-      border: 1px solid #DBEAFE;
-      color: #1E40AF;
-      font-size: 0.8rem;
-      display: none;
-      align-items: center;
-      gap: 10px;
+    .btn-new-order:hover {
+      background: var(--matcha-subtle);
     }
 
     /* Footer */
@@ -822,12 +888,9 @@
           <span>Kaito on Duty</span>
         </div>
         
-        <div class="cup-pills" id="cupPills" title="Live Ceramic Cup Inventory">
-          <div class="cup-pill">Shelf: <strong id="shelfCount">10</strong></div>
-          <span style="color: var(--border);">•</span>
-          <div class="cup-pill">In Use: <strong id="inUseCount">0</strong></div>
-          <span style="color: var(--border);">•</span>
-          <div class="cup-pill">Washing: <strong id="washCount">0</strong></div>
+        <div class="order-tray-badge" id="headerTrayBadge">
+          <span>🛒</span>
+          <span id="headerTrayText">Tray: Empty</span>
         </div>
       </div>
     </div>
@@ -838,24 +901,16 @@
     <!-- Left Column: Menu & Customization -->
     <section>
       <div class="card">
-        <!-- 1. Customer Selection -->
+        <!-- 1. Customer Selection (Required) -->
         <div class="customer-input-group">
           <label class="input-label" for="customerName">
-            <span class="card-step-badge">1</span> Your Name (Guest or Regular)
+            <span class="card-step-badge">1</span> Your Name <span style="color: #D32F2F; font-weight: 700;">*</span>
           </label>
           <div class="name-input-wrapper">
-            <input type="text" id="customerName" class="name-input" placeholder="Enter your name (e.g. Maya, Kenji...)" value="Maya">
-          </div>
-          <div class="customer-chips">
-            <span class="customer-chip active" onclick="selectCustomer('Maya')">Maya</span>
-            <span class="customer-chip" onclick="selectCustomer('Kenji')">Kenji</span>
-            <span class="customer-chip" onclick="selectCustomer('Nada')">Nada</span>
-            <span class="customer-chip" onclick="selectCustomer('Hossam')">Hossam</span>
-            <span class="customer-chip" onclick="selectCustomer('Liam')">Liam</span>
-            <span class="customer-chip" onclick="selectCustomer('Zara')">Zara</span>
+            <input type="text" id="customerName" class="name-input" placeholder="Enter your name (e.g. Maya, Kenji...)" value="" required autocomplete="name">
           </div>
           <div class="loyalty-banner" id="loyaltyBanner">
-            ⭐ <strong id="loyaltyName">Maya</strong> is a Café Regular (<span id="loyaltyOrders">0</span> orders • Favorite: <span id="loyaltyFav">-</span>)
+            ⭐ <strong id="loyaltyName">Customer</strong> is a Café Regular (<span id="loyaltyOrders">0</span> orders • Favorite: <span id="loyaltyFav">-</span>)
           </div>
         </div>
 
@@ -881,79 +936,92 @@
           </div>
         </div>
 
-        <!-- 3. Customizations -->
-        <div class="card-header" style="margin-top: 16px;">
-          <div>
-            <h2 class="card-title"><span class="card-step-badge">3</span> Personalize Your Cup</h2>
-            <p class="card-subtitle">Tailored milk and sweetness preferences</p>
-          </div>
-        </div>
-
-        <div class="customization-section">
-          <div class="option-group">
-            <label class="input-label">Milk Selection</label>
-            <div class="pill-selector" id="milkSelector">
-              <button class="pill-btn active" onclick="selectMilk('Oat Milk')">Oat Milk</button>
-              <button class="pill-btn" onclick="selectMilk('Almond Milk')">Almond Milk</button>
-              <button class="pill-btn" onclick="selectMilk('Whole Milk')">Whole Milk</button>
-              <button class="pill-btn" onclick="selectMilk('Soy Milk')">Soy Milk</button>
-              <button class="pill-btn" onclick="selectMilk('None / Black')">None / Black</button>
+        <!-- 3. Customizations (Drinks Only) -->
+        <div id="personalizeContainer">
+          <div class="card-header" style="margin-top: 16px;">
+            <div>
+              <h2 class="card-title"><span class="card-step-badge">3</span> Personalize Your Cup</h2>
+              <p class="card-subtitle">Tailored milk and sweetness preferences</p>
             </div>
           </div>
 
-          <div class="option-group">
-            <label class="input-label">Sweetness Level</label>
-            <div class="pill-selector" id="sweetnessSelector">
-              <button class="pill-btn" onclick="selectSweetness('0% (Unsweetened)')">0% Unsweetened</button>
-              <button class="pill-btn" onclick="selectSweetness('25%')">25% Subtle</button>
-              <button class="pill-btn active" onclick="selectSweetness('50%')">50% Balanced</button>
-              <button class="pill-btn" onclick="selectSweetness('75%')">75% Sweet</button>
-              <button class="pill-btn" onclick="selectSweetness('100%')">100% Traditional</button>
+          <div class="customization-section">
+            <div class="option-group">
+              <label class="input-label">Milk Selection</label>
+              <div class="pill-selector" id="milkSelector">
+                <button class="pill-btn active" data-milk="Oat Milk" onclick="selectMilk('Oat Milk')">Oat Milk</button>
+                <button class="pill-btn" data-milk="Almond Milk" onclick="selectMilk('Almond Milk')">Almond Milk</button>
+                <button class="pill-btn" data-milk="Whole Milk" onclick="selectMilk('Whole Milk')">Whole Milk</button>
+                <button class="pill-btn" data-milk="Soy Milk" onclick="selectMilk('Soy Milk')">Soy Milk</button>
+                <button class="pill-btn" data-milk="None / Black" onclick="selectMilk('None / Black')">None / Black</button>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <label class="input-label">Sweetness Level</label>
+              <div class="pill-selector" id="sweetnessSelector">
+                <button class="pill-btn" data-sweetness="0% (Unsweetened)" onclick="selectSweetness('0% (Unsweetened)')">0% Unsweetened</button>
+                <button class="pill-btn" data-sweetness="25%" onclick="selectSweetness('25%')">25% Subtle</button>
+                <button class="pill-btn active" data-sweetness="50%" onclick="selectSweetness('50%')">50% Balanced</button>
+                <button class="pill-btn" data-sweetness="75%" onclick="selectSweetness('75%')">75% Sweet</button>
+                <button class="pill-btn" data-sweetness="100%" onclick="selectSweetness('100%')">100% Traditional</button>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Alternate Non-Drink Note (Pastries & Desserts) -->
+        <div id="noCustomizationNote" style="display: none; margin-top: 20px; padding: 18px 22px; background: #FAFBF9; border: 1.5px dashed var(--border); border-radius: var(--radius-md); text-align: left;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: var(--matcha-froth); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">🍽️</div>
+            <div>
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-dark);">Artisan Plate Presentation</h4>
+              <p id="noCustomizationText" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">This item is prepared fresh and served on a handcrafted ceramic plate. No drink cup or milk customization needed.</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-add-tray" id="btnAddToTray" onclick="addToTray()">
+          <span id="btnAddToTrayText">+ Add to Order Tray</span>
+          <span id="addToTrayPrice">($6.50)</span>
+        </button>
       </div>
     </section>
 
-    <!-- Right Column: Order Summary & Live Progress Tracker -->
+    <!-- Right Column: Order Tray & Live Progress Tracker -->
     <aside>
       <div class="card order-summary-card">
-        <div class="ticket-header">
-          <span class="ticket-title">Order Summary</span>
-          <span style="font-size: 0.78rem; font-weight: 600; color: var(--matcha);">Dine-In Cup Service</span>
-        </div>
+        <div id="trayCardView">
+          <div class="ticket-header">
+            <div>
+              <span class="ticket-title">Your Order Tray</span>
+              <p style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">Customer: <strong id="summaryCustomer">—</strong></p>
+            </div>
+            <span id="trayItemCountBadge" style="font-size: 0.78rem; font-weight: 700; background: var(--matcha-froth); color: var(--matcha); padding: 3px 10px; border-radius: var(--radius-full);">0 items</span>
+          </div>
 
-        <div class="ticket-body">
-          <div class="ticket-line">
-            <span class="label">Customer</span>
-            <span class="value" id="summaryCustomer">Maya</span>
+          <div class="ticket-body" id="trayItemsContainer">
+            <div class="tray-empty-box" id="trayEmptyNotice">
+              <span>🍵 Your tray is empty.</span>
+              <p style="margin-top: 4px; font-size: 0.78rem; color: var(--text-light);">Select creations from the menu and click "+ Add to Order Tray".</p>
+            </div>
           </div>
-          <div class="ticket-line">
-            <span class="label">Item</span>
-            <span class="value" id="summaryDrink">-</span>
-          </div>
-          <div class="ticket-line">
-            <span class="label">Customization</span>
-            <span class="value" id="summaryOptions">Oat Milk, 50%</span>
-          </div>
-          <div class="ticket-line total">
-            <span>Total Amount</span>
+
+          <div class="ticket-line total" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <span>Order Total</span>
             <span id="summaryTotal">$0.00</span>
           </div>
-        </div>
 
-        <div class="cup-indicator">
-          <span style="font-size: 18px;">🍵</span>
-          <div>
-            <strong>Eco Ceramic Mug Assigned:</strong>
-            <p style="font-size: 0.75rem; color: var(--text-muted);">Exclusive zero-waste cup allocated from the shelf.</p>
+          <div style="margin: 14px 0 18px; padding: 10px 14px; background: #FAFBF9; border: 1px solid #E5EBE1; border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+            <span>🍵</span>
+            <span>Served in artisanal handcrafted ceramics & Mino-ware plates.</span>
           </div>
-        </div>
 
-        <button class="btn-whisk" id="submitOrderBtn" onclick="submitOrder()">
-          <span>Whisk My Order</span>
-          <span>→</span>
-        </button>
+          <button class="btn-whisk" id="submitOrderBtn" onclick="submitOrder()" disabled>
+            <span id="submitOrderBtnText">Place Order ($0.00)</span>
+            <span>→</span>
+          </button>
+        </div>
 
         <!-- Live Order Tracker Modal / Box -->
         <div class="live-tracker-box" id="trackerBox">
@@ -977,32 +1045,31 @@
             </div>
             <div class="step-item" id="step2">
               <div class="step-circle">2</div>
-              <span class="step-label">Whisking</span>
+              <span class="step-label" id="step2Label">Preparing</span>
             </div>
             <div class="step-item" id="step3">
               <div class="step-circle">3</div>
-              <span class="step-label">Ready</span>
+              <span class="step-label" id="step3Label">Ready</span>
             </div>
           </div>
 
-          <!-- Cup Card -->
-          <div class="tracker-cup-banner" id="cupBanner">
-            <div class="cup-avatar">☕</div>
-            <div class="cup-meta">
-              <h4 id="cupCodeDisplay">Cup Allocated: Assigning...</h4>
-              <p>Handmade Japanese Ceramic Mug</p>
+          <!-- Items in Tracker -->
+          <div id="trackerItemsContainer" style="margin-bottom: 16px;"></div>
+
+          <!-- Ready Hospitality Banner -->
+          <div id="trackerReadyBanner" style="display: none; padding: 14px; background: #F2F7F0; border: 1px solid #D6E5D1; border-radius: var(--radius-md); font-size: 0.82rem; color: #1E3F20; margin-bottom: 16px;">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="font-size: 20px;">✨</span>
+              <div>
+                <strong>Ready for Pickup at Counter!</strong>
+                <p style="color: #4A634E; margin-top: 2px;">Your order has been freshly prepared. Please sit back, relax, and enjoy your artisanal matcha experience.</p>
+              </div>
             </div>
           </div>
 
-          <!-- Return Cup Button -->
-          <button class="btn-return-cup" id="returnCupBtn" style="display: none;" onclick="returnCurrentCup()">
-            <span>🍽️ Finished! Return Cup to Dishwasher Station</span>
+          <button class="btn-new-order" id="btnNewOrder" style="display: none;" onclick="startNewOrder()">
+            + Place Another Order
           </button>
-
-          <div class="dishwasher-indicator-box" id="dishwasherNotice">
-            <span style="font-size: 18px;">🫧</span>
-            <span>Dishwasher worker is sanitizing your cup at 85°C...</span>
-          </div>
         </div>
       </div>
     </aside>
@@ -1015,29 +1082,33 @@
   <script>
     // State
     let products = [];
-    let selectedDrink = null;
+    let selectedProduct = null;
     let selectedMilk = "Oat Milk";
     let selectedSweetness = "50%";
+    let tray = [];
     let activeOrderId = null;
-    let assignedCupCode = null;
     let trackingInterval = null;
+    let isOrderInProgress = false;
+    const MAX_DRINKS_PER_ORDER = 12;
 
     // Load initial data
     document.addEventListener("DOMContentLoaded", () => {
       fetchMenu();
-      fetchCups();
-      checkCustomerLoyalty("Maya");
 
-      // Poll cup inventory every 3s
-      setInterval(fetchCups, 3000);
-
-      // Input listener
+      // Customer name input listener (customer is required to enter their name)
       const customerInput = document.getElementById("customerName");
-      customerInput.addEventListener("input", (e) => {
-        const val = e.target.value.trim() || "Guest";
-        document.getElementById("summaryCustomer").innerText = val;
-        checkCustomerLoyalty(val);
-      });
+      if (customerInput) {
+        customerInput.value = "";
+        customerInput.addEventListener("input", (e) => {
+          const val = e.target.value.trim();
+          document.getElementById("summaryCustomer").innerText = val || "—";
+          if (val) {
+            checkCustomerLoyalty(val);
+          } else {
+            document.getElementById("loyaltyBanner").style.display = "none";
+          }
+        });
+      }
     });
 
     async function fetchMenu() {
@@ -1047,26 +1118,13 @@
         products = data.products || [];
         renderMenu(products);
         if (products.length > 0) {
-          selectDrink(products[0]);
+          selectProduct(products[0]);
         }
       } catch (err) {
         document.getElementById("menuGrid").innerHTML = `
-          <div style="grid-column: 1 / -1; color: var(--accent-coral); text-align: center;">
+          <div style="grid-column: 1 / -1; color: var(--accent-coral); text-align: center; padding: 24px;">
             Could not connect to Menu API. Please make sure api.py is running.
           </div>`;
-      }
-    }
-
-    async function fetchCups() {
-      try {
-        const res = await fetch("/cups");
-        const data = await res.json();
-        const counts = data.counts || {};
-        document.getElementById("shelfCount").innerText = counts.CLEAN_ON_SHELF || 0;
-        document.getElementById("inUseCount").innerText = (counts.IN_BREWING || 0) + (counts.WITH_CUSTOMER || 0);
-        document.getElementById("washCount").innerText = counts.IN_DISHWASHER || 0;
-      } catch (err) {
-        console.warn("Could not fetch cup stats:", err);
       }
     }
 
@@ -1093,10 +1151,10 @@
       container.innerHTML = "";
 
       items.forEach(item => {
-        const isSelected = selectedDrink && selectedDrink.id === item.id;
+        const isSelected = selectedProduct && selectedProduct.id === item.id;
         const card = document.createElement("div");
         card.className = `menu-item-card ${isSelected ? 'selected' : ''}`;
-        card.onclick = () => selectDrink(item);
+        card.onclick = () => selectProduct(item);
 
         card.innerHTML = `
           <div>
@@ -1115,91 +1173,292 @@
       });
     }
 
+    function getItemDisplayName(item) {
+      return item.drink_name || item.name || item.drink || "Matcha Creation";
+    }
+
     function filterCategory(cat) {
       document.querySelectorAll(".category-tab").forEach(tab => {
         tab.classList.toggle("active", tab.innerText.toLowerCase().includes(cat.toLowerCase()));
       });
 
-      if (cat === "All") {
-        renderMenu(products);
-      } else {
-        const filtered = products.filter(p => p.category.toLowerCase() === cat.toLowerCase());
-        renderMenu(filtered);
+      let filtered = products;
+      if (cat !== "All") {
+        filtered = products.filter(p => p.category.toLowerCase() === cat.toLowerCase());
+      }
+      renderMenu(filtered);
+
+      // If the currently selected item is not in this newly filtered category,
+      // remove the selection so "Personalise your cup" and other drink-specific UI are cleanly removed
+      const isVisible = selectedProduct && filtered.some(p => p.id === selectedProduct.id);
+      if (!isVisible) {
+        clearProductSelection();
       }
     }
 
-    function selectDrink(drink) {
-      selectedDrink = drink;
-      document.querySelectorAll(".menu-item-card").forEach(c => {
-        const name = c.querySelector(".item-name").innerText;
-        c.classList.toggle("selected", name === drink.name);
-      });
+    function clearProductSelection() {
+      selectedProduct = null;
+      document.querySelectorAll(".menu-item-card").forEach(c => c.classList.remove("selected"));
+      
+      const personalizeContainer = document.getElementById("personalizeContainer");
+      const noCustomizationNote = document.getElementById("noCustomizationNote");
+      const addToTrayBtn = document.getElementById("btnAddToTray");
+      const btnAddToTrayText = document.getElementById("btnAddToTrayText");
+      const addToTrayPrice = document.getElementById("addToTrayPrice");
 
-      document.getElementById("summaryDrink").innerText = drink.name;
-      document.getElementById("summaryTotal").innerText = `$${drink.price.toFixed(2)}`;
+      if (personalizeContainer) personalizeContainer.style.display = "none";
+      if (noCustomizationNote) noCustomizationNote.style.display = "none";
+      if (addToTrayBtn) addToTrayBtn.disabled = true;
+      if (btnAddToTrayText) btnAddToTrayText.innerText = "Select an item from the menu";
+      if (addToTrayPrice) addToTrayPrice.innerText = "";
     }
 
-    function selectCustomer(name) {
-      document.getElementById("customerName").value = name;
-      document.getElementById("summaryCustomer").innerText = name;
-      document.querySelectorAll(".customer-chip").forEach(chip => {
-        chip.classList.toggle("active", chip.innerText === name);
+    function selectProduct(product) {
+      selectedProduct = product;
+      document.querySelectorAll(".menu-item-card").forEach(c => {
+        const name = c.querySelector(".item-name").innerText;
+        c.classList.toggle("selected", name === product.name);
       });
-      checkCustomerLoyalty(name);
+
+      const isDrink = (product.category || "").toLowerCase() === "drink";
+      const personalizeContainer = document.getElementById("personalizeContainer");
+      const noCustomizationNote = document.getElementById("noCustomizationNote");
+      const addToTrayBtn = document.getElementById("btnAddToTray");
+      const btnAddToTrayText = document.getElementById("btnAddToTrayText");
+      const addToTrayPrice = document.getElementById("addToTrayPrice");
+
+      if (isOrderInProgress) {
+        if (addToTrayBtn) addToTrayBtn.disabled = true;
+        if (btnAddToTrayText) btnAddToTrayText.innerText = "Order in Preparation...";
+        if (addToTrayPrice) addToTrayPrice.innerText = "";
+      } else {
+        if (addToTrayBtn) addToTrayBtn.disabled = false;
+        if (btnAddToTrayText) btnAddToTrayText.innerText = "+ Add to Order Tray";
+        if (addToTrayPrice) {
+          addToTrayPrice.innerText = `($${product.price.toFixed(2)})`;
+        }
+      }
+
+      if (isDrink) {
+        personalizeContainer.style.display = "block";
+        if (noCustomizationNote) noCustomizationNote.style.display = "none";
+      } else {
+        personalizeContainer.style.display = "none";
+        if (noCustomizationNote) {
+          noCustomizationNote.style.display = "block";
+          const desc = product.category.toLowerCase() === "dessert"
+            ? "This dessert is served chilled in an artisanal glass dish. No drink cup or milk customization needed."
+            : "This pastry is freshly baked and served on a handcrafted Mino-ware ceramic plate. No drink cup or milk customization needed.";
+          document.getElementById("noCustomizationText").innerText = desc;
+        }
+      }
     }
 
     function selectMilk(milk) {
       selectedMilk = milk;
       document.querySelectorAll("#milkSelector .pill-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.innerText === milk);
+        const btnVal = btn.getAttribute("data-milk") || btn.innerText.trim();
+        btn.classList.toggle("active", btnVal === milk);
       });
-      updateOptionsSummary();
     }
 
     function selectSweetness(sweetness) {
       selectedSweetness = sweetness;
       document.querySelectorAll("#sweetnessSelector .pill-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.innerText.includes(sweetness));
+        const btnVal = btn.getAttribute("data-sweetness") || btn.innerText.trim();
+        btn.classList.toggle("active", btnVal === sweetness);
       });
-      updateOptionsSummary();
     }
 
-    function updateOptionsSummary() {
-      document.getElementById("summaryOptions").innerText = `${selectedMilk}, ${selectedSweetness}`;
+    function getTrayDrinkCount() {
+      return tray.reduce((sum, item) => {
+        const isDrink = (item.category || "").toLowerCase() === "drink" || !!item.milk;
+        return isDrink ? sum + item.quantity : sum;
+      }, 0);
+    }
+
+    // Tray Operations
+    function addToTray() {
+      if (isOrderInProgress) {
+        alert("Your order is currently being prepared. Please wait or click '+ Place Another Order' once it is ready.");
+        return;
+      }
+      if (!selectedProduct) return;
+
+      // If previous order is finished and tracker is still open, reset back to tray
+      const trackerBox = document.getElementById("trackerBox");
+      if (trackerBox && trackerBox.style.display !== "none") {
+        trackerBox.style.display = "none";
+        const trayView = document.getElementById("trayCardView");
+        if (trayView) trayView.style.display = "block";
+        tray = [];
+      }
+
+      const isDrink = (selectedProduct.category || "").toLowerCase() === "drink";
+      if (isDrink) {
+        const currentDrinkCount = getTrayDrinkCount();
+        if (currentDrinkCount + 1 > MAX_DRINKS_PER_ORDER) {
+          alert(`Our café has a maximum limit of ${MAX_DRINKS_PER_ORDER} dine-in drinks per order (matching our ${MAX_DRINKS_PER_ORDER} handcrafted ceramic cups).`);
+          return;
+        }
+      }
+
+      const milk = isDrink ? selectedMilk : null;
+      const sweetness = isDrink ? selectedSweetness : null;
+
+      // Check if existing line item matches (same product and customizations)
+      const existing = tray.find(item => 
+        item.id === selectedProduct.id && 
+        item.milk === milk && 
+        item.sweetness === sweetness
+      );
+
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        tray.push({
+          id: selectedProduct.id,
+          drink_name: selectedProduct.name,
+          category: selectedProduct.category,
+          price: selectedProduct.price,
+          milk: milk,
+          sweetness: sweetness,
+          quantity: 1
+        });
+      }
+
+      renderTray();
+
+      // Brief tactile button feedback
+      const btn = document.getElementById("btnAddToTray");
+      btn.style.transform = "scale(0.98)";
+      setTimeout(() => btn.style.transform = "", 150);
+    }
+
+    function updateQty(index, delta) {
+      if (isOrderInProgress || !tray[index]) return;
+      const item = tray[index];
+      const isDrink = (item.category || "").toLowerCase() === "drink" || !!item.milk;
+      if (delta > 0 && isDrink) {
+        const currentDrinkCount = getTrayDrinkCount();
+        if (currentDrinkCount + delta > MAX_DRINKS_PER_ORDER) {
+          alert(`Our café has a maximum limit of ${MAX_DRINKS_PER_ORDER} dine-in drinks per order (matching our ${MAX_DRINKS_PER_ORDER} handcrafted ceramic cups).`);
+          return;
+        }
+      }
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        tray.splice(index, 1);
+      }
+      renderTray();
+    }
+
+    function removeFromTray(index) {
+      if (isOrderInProgress || !tray[index]) return;
+      tray.splice(index, 1);
+      renderTray();
+    }
+
+    function renderTray() {
+      const container = document.getElementById("trayItemsContainer");
+      const badge = document.getElementById("trayItemCountBadge");
+      const headerTrayText = document.getElementById("headerTrayText");
+      const summaryTotal = document.getElementById("summaryTotal");
+      const submitBtn = document.getElementById("submitOrderBtn");
+      const submitBtnText = document.getElementById("submitOrderBtnText");
+
+      if (tray.length === 0) {
+        container.innerHTML = `
+          <div class="tray-empty-box" id="trayEmptyNotice">
+            <span>🍵 Your tray is empty.</span>
+            <p style="margin-top: 4px; font-size: 0.78rem; color: var(--text-light);">Select creations from the menu and click "+ Add to Order Tray".</p>
+          </div>
+        `;
+        badge.innerText = "0 items";
+        headerTrayText.innerText = "Tray: Empty";
+        summaryTotal.innerText = "$0.00";
+        submitBtn.disabled = true;
+        submitBtnText.innerText = "Place Order ($0.00)";
+        return;
+      }
+
+      const totalCount = tray.reduce((sum, i) => sum + i.quantity, 0);
+      const totalPrice = tray.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+      badge.innerText = `${totalCount} item${totalCount === 1 ? '' : 's'}`;
+      headerTrayText.innerText = `${totalCount} item${totalCount === 1 ? '' : 's'} ($${totalPrice.toFixed(2)})`;
+      summaryTotal.innerText = `$${totalPrice.toFixed(2)}`;
+      submitBtn.disabled = false;
+      submitBtnText.innerText = `Place Order ($${totalPrice.toFixed(2)})`;
+
+      container.innerHTML = tray.map((item, idx) => `
+        <div class="tray-item">
+          <div class="tray-item-info">
+            <div class="tray-item-title">${item.drink_name}</div>
+            <div class="tray-item-meta">${item.milk ? `${item.milk} • ${item.sweetness}` : (item.category === 'Dessert' ? 'Artisan Chilled Dish' : 'Ceramic Plate')}</div>
+          </div>
+          <div class="tray-item-actions">
+            <button class="qty-btn" onclick="updateQty(${idx}, -1)" title="Decrease">−</button>
+            <span class="tray-item-qty">${item.quantity}</span>
+            <button class="qty-btn" onclick="updateQty(${idx}, 1)" title="Increase">+</button>
+            <span class="tray-item-price">$${(item.price * item.quantity).toFixed(2)}</span>
+            <button class="tray-item-del" onclick="removeFromTray(${idx})" title="Remove">✕</button>
+          </div>
+        </div>
+      `).join('');
     }
 
     // Submit Order
     async function submitOrder() {
-      if (!selectedDrink) return;
+      if (tray.length === 0) return;
 
-      const customer = document.getElementById("customerName").value.trim() || "Guest";
+      const customerInput = document.getElementById("customerName");
+      const customer = customerInput ? customerInput.value.trim() : "";
+      if (!customer) {
+        alert("Please enter your name before placing your order.");
+        if (customerInput) {
+          customerInput.focus();
+          customerInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
       const submitBtn = document.getElementById("submitOrderBtn");
+      const submitBtnText = document.getElementById("submitOrderBtnText");
+
       submitBtn.disabled = true;
-      submitBtn.innerHTML = `<span>Whisking Order...</span>`;
+      submitBtnText.innerText = "Placing Order...";
 
       try {
+        const payload = {
+          customer_name: customer,
+          items: tray.map(item => ({
+            drink_name: item.drink_name,
+            milk: item.milk,
+            sweetness: item.sweetness,
+            quantity: item.quantity
+          }))
+        };
+
         const res = await fetch("/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customer_name: customer,
-            drink: selectedDrink.name,
-            milk: selectedMilk,
-            sweetness: selectedSweetness
-          })
+          body: JSON.stringify(payload)
         });
 
         if (!res.ok) {
           const err = await res.json();
           alert(`Order failed: ${err.detail || "Server error"}`);
           submitBtn.disabled = false;
-          submitBtn.innerHTML = `<span>Whisk My Order</span><span>→</span>`;
+          renderTray();
           return;
         }
 
         const data = await res.json();
         activeOrderId = data.order_id;
-        assignedCupCode = null;
+
+        // Button text while preparing
+        submitBtnText.innerText = "Whisking Order...";
 
         // Show live tracking box
         showTracker(data);
@@ -1208,22 +1467,65 @@
       } catch (err) {
         alert("Failed to submit order: " + err.message);
         submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Whisk My Order</span><span>→</span>`;
+        renderTray();
       }
     }
 
+    function renderTrackerItems(items) {
+      const itemsContainer = document.getElementById("trackerItemsContainer");
+      if (!itemsContainer) return;
+      const list = items && items.length > 0 ? items : tray;
+
+      itemsContainer.innerHTML = `
+        <div style="background: #FAFBF9; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 0.82rem;">
+          <div style="font-weight: 700; color: var(--primary-dark); margin-bottom: 6px;">Your Creations:</div>
+          ${list.map(item => {
+            const name = item.drink_name || item.name || item.drink || "Matcha Creation";
+            const qty = item.quantity || 1;
+            const price = item.price ? '$' + (item.price * qty).toFixed(2) : '';
+            const custom = item.milk ? `<small style="color: var(--text-muted);">(${item.milk}, ${item.sweetness})</small>` : '';
+            return `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text-main);">
+                <span>${qty}x <strong>${name}</strong> ${custom}</span>
+                <span style="font-weight: 600; color: var(--matcha);">${price}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
     function showTracker(order) {
+      isOrderInProgress = true;
+      // Hide the editable tray so the customer cannot edit an active order
+      const trayView = document.getElementById("trayCardView");
+      if (trayView) trayView.style.display = "none";
+
+      // Disable menu "+ Add to Order Tray" while order is being prepared
+      const addBtn = document.getElementById("btnAddToTray");
+      if (addBtn) {
+        addBtn.disabled = true;
+        document.getElementById("btnAddToTrayText").innerText = "Order in Preparation...";
+        document.getElementById("addToTrayPrice").innerText = "";
+      }
+
       const box = document.getElementById("trackerBox");
       box.style.display = "block";
       document.getElementById("trackerOrderId").innerText = order.order_id;
       document.getElementById("trackerStatusBadge").innerText = "Received";
       document.getElementById("trackerStatusBadge").style.background = "#EBF3E8";
       document.getElementById("trackerStatusBadge").style.color = "#2E5A27";
+      document.getElementById("trackerBarista").innerText = "Kaito";
+      document.getElementById("step2Label").innerText = "Preparing";
+      document.getElementById("trackerReadyBanner").style.display = "none";
+      document.getElementById("btnNewOrder").style.display = "none";
+
+      renderTrackerItems(order.items && order.items.length > 0 ? order.items : tray);
 
       updateStepper(1);
-      document.getElementById("cupCodeDisplay").innerText = "Allocating clean ceramic cup...";
-      document.getElementById("returnCupBtn").style.display = "none";
-      document.getElementById("dishwasherNotice").style.display = "none";
+
+      // Smooth scroll into view
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function updateStepper(step) {
@@ -1240,44 +1542,66 @@
 
     function startPollingOrder(orderId) {
       if (trackingInterval) clearInterval(trackingInterval);
+      let errorCount = 0;
 
       trackingInterval = setInterval(async () => {
         try {
           const res = await fetch(`/orders/${orderId}`);
-          if (!res.ok) return;
+          if (!res.ok) {
+            errorCount++;
+            if (errorCount > 8) {
+              clearInterval(trackingInterval);
+              document.getElementById("trackerStatusBadge").innerText = "Order Received";
+              const submitBtn = document.getElementById("submitOrderBtn");
+              const submitBtnText = document.getElementById("submitOrderBtnText");
+              if (submitBtn) submitBtn.disabled = false;
+              if (submitBtnText) submitBtnText.innerText = "Place Another Order";
+            }
+            return;
+          }
+          errorCount = 0;
           const order = await res.json();
 
           if (order.prepared_by) {
             document.getElementById("trackerBarista").innerText = order.prepared_by;
           }
 
-          if (order.cup_code) {
-            assignedCupCode = order.cup_code;
-            document.getElementById("cupCodeDisplay").innerHTML = `Served in <strong>${order.cup_code}</strong> (Ceramic)`;
+          if (order.items && order.items.length > 0) {
+            renderTrackerItems(order.items);
           }
 
           if (order.status === "PENDING") {
             updateStepper(1);
-            document.getElementById("trackerStatusBadge").innerText = "Order In Queue";
+            document.getElementById("trackerStatusBadge").innerText = "Order in Queue";
+            document.getElementById("trackerStatusBadge").style.background = "#EBF3E8";
+            document.getElementById("trackerStatusBadge").style.color = "#2E5A27";
           } else if (order.status === "PREPARING") {
             updateStepper(2);
-            document.getElementById("trackerStatusBadge").innerText = "Whisking Matcha";
+            document.getElementById("trackerStatusBadge").innerText = "Preparing Creations...";
             document.getElementById("trackerStatusBadge").style.background = "#FEF3C7";
             document.getElementById("trackerStatusBadge").style.color = "#92400E";
           } else if (order.status === "READY") {
             updateStepper(3);
-            document.getElementById("trackerStatusBadge").innerText = "Ready at Counter! 🎉";
+            document.getElementById("trackerStatusBadge").innerText = "Ready at Counter! ✨";
             document.getElementById("trackerStatusBadge").style.background = "#DCFCE7";
             document.getElementById("trackerStatusBadge").style.color = "#166534";
 
-            // Show return cup button
-            document.getElementById("returnCupBtn").style.display = "flex";
             clearInterval(trackingInterval);
 
-            // Re-enable submit button for next order
-            const submitBtn = document.getElementById("submitOrderBtn");
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<span>Whisk Another Order</span><span>→</span>`;
+            // Show pickup hospitality banner and button for placing another order
+            document.getElementById("trackerReadyBanner").style.display = "block";
+            document.getElementById("btnNewOrder").style.display = "block";
+
+            // Order delivered: unlock menu button and clear "Order in Preparation..."
+            isOrderInProgress = false;
+            const addBtn = document.getElementById("btnAddToTray");
+            const addBtnText = document.getElementById("btnAddToTrayText");
+            const addBtnPrice = document.getElementById("addToTrayPrice");
+            if (addBtn) addBtn.disabled = false;
+            if (addBtnText) addBtnText.innerText = "+ Add to Order Tray";
+            if (addBtnPrice && selectedProduct) {
+              addBtnPrice.innerText = `($${selectedProduct.price.toFixed(2)})`;
+            }
           }
         } catch (e) {
           console.warn("Polling error:", e);
@@ -1285,41 +1609,34 @@
       }, 1000);
     }
 
-    async function returnCurrentCup() {
-      if (!assignedCupCode) return;
+    function startNewOrder() {
+      isOrderInProgress = false;
+      // Restore editable tray
+      const trayView = document.getElementById("trayCardView");
+      if (trayView) trayView.style.display = "block";
 
-      const customer = document.getElementById("customerName").value.trim() || "Guest";
-      const btn = document.getElementById("returnCupBtn");
-      btn.disabled = true;
-      btn.innerHTML = `<span>Returning ${assignedCupCode}...</span>`;
+      const box = document.getElementById("trackerBox");
+      if (box) box.style.display = "none";
 
-      try {
-        const res = await fetch(`/cups/${assignedCupCode}/return?customer_name=${encodeURIComponent(customer)}`, {
-          method: "POST"
-        });
+      tray = [];
+      renderTray();
 
-        if (res.ok) {
-          btn.className = "btn-return-cup returned";
-          btn.innerHTML = `<span>✨ Returned ${assignedCupCode} to Dishwasher Station!</span>`;
-          
-          // Show dishwasher sanitizing message
-          const notice = document.getElementById("dishwasherNotice");
-          notice.style.display = "flex";
-          notice.innerHTML = `<span style="font-size: 18px;">🫧</span><span>${assignedCupCode} is inside the 4.0s commercial steam sanitizer...</span>`;
+      const addBtn = document.getElementById("btnAddToTray");
+      const addBtnText = document.getElementById("btnAddToTrayText");
+      const addBtnPrice = document.getElementById("addToTrayPrice");
+      if (addBtn) addBtn.disabled = false;
+      if (addBtnText) addBtnText.innerText = "+ Add to Order Tray";
 
-          // Refresh cup inventory counter
-          fetchCups();
-
-          // After 4.5s (dishwasher wash cycle completion)
-          setTimeout(() => {
-            notice.innerHTML = `<span style="font-size: 18px;">✨</span><span><strong>${assignedCupCode}</strong> has been sanitized and placed back on the shelf!</span>`;
-            fetchCups();
-          }, 4500);
-        }
-      } catch (err) {
-        alert("Could not return cup: " + err.message);
-        btn.disabled = false;
-        btn.innerHTML = `<span>🍽️ Finished! Return Cup to Dishwasher Station</span>`;
+      filterCategory("All");
+      if (products.length > 0) {
+        selectProduct(products[0]);
+      }
+      const name = document.getElementById("customerName") ? document.getElementById("customerName").value.trim() : "";
+      if (name) {
+        checkCustomerLoyalty(name);
+        document.getElementById("summaryCustomer").innerText = name;
+      } else {
+        document.getElementById("summaryCustomer").innerText = "—";
       }
     }
   </script>

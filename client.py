@@ -117,6 +117,7 @@ def run_api_client(api_url, name, drink, milk, sweetness, timeout=60):
 
     payload = {
         "customer_name": name,
+        "drink_name": drink,
         "drink": drink,
         "milk": milk,
         "sweetness": sweetness,
@@ -208,6 +209,7 @@ def run_direct_kafka_client(bootstrap_server, orders_topic, ready_topic, name, d
     order_event = {
         "order_id": order_id,
         "client_name": name,
+        "drink_name": drink,
         "drink": drink,
         "milk": milk,
         "sweetness": sweetness,

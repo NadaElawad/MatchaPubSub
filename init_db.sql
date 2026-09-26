@@ -16,11 +16,13 @@ CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
     order_id VARCHAR(50) UNIQUE NOT NULL,
     customer_name VARCHAR(100) NOT NULL,
-    drink_name VARCHAR(100) NOT NULL,
+    drink_name TEXT NOT NULL,
     milk VARCHAR(50),
     sweetness VARCHAR(50),
-    price DECIMAL(6, 2) NOT NULL,
-    cup_code VARCHAR(20),
+    price DECIMAL(10, 2) NOT NULL,
+    cup_code TEXT,
+    cup_codes TEXT[],
+    items JSONB,
     status VARCHAR(50) DEFAULT 'READY',
     prepared_by VARCHAR(100),
     ordered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -31,7 +33,7 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE TABLE IF NOT EXISTS customers (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
-    favorite_drink VARCHAR(100),
+    favorite_drink TEXT,
     preferred_milk VARCHAR(50),
     preferred_sweetness VARCHAR(50),
     total_spent DECIMAL(10, 2) DEFAULT 0.00,
@@ -74,8 +76,8 @@ INSERT INTO products (name, category, price, description) VALUES
     ('Matcha Basque Cheesecake', 'Pastry', 8.00, 'Rich, caramelized crust with an oozing matcha center')
 ON CONFLICT (name) DO UPDATE SET price = EXCLUDED.price;
 
--- Seed initial pool of 10 handcrafted ceramic cups
+-- Seed initial pool of 12 handcrafted ceramic cups
 INSERT INTO cups (cup_code) VALUES
-    ('CUP-01'), ('CUP-02'), ('CUP-03'), ('CUP-04'), ('CUP-05'),
-    ('CUP-06'), ('CUP-07'), ('CUP-08'), ('CUP-09'), ('CUP-10')
+    ('CUP-01'), ('CUP-02'), ('CUP-03'), ('CUP-04'), ('CUP-05'), ('CUP-06'),
+    ('CUP-07'), ('CUP-08'), ('CUP-09'), ('CUP-10'), ('CUP-11'), ('CUP-12')
 ON CONFLICT (cup_code) DO NOTHING;
