@@ -73,6 +73,37 @@ def print_dashboard():
                 print(f"   • Total Drinks  : {Color.BOLD}{Color.YELLOW}{total_drinks}{Color.RESET}")
                 print()
 
+                # 4. Cup Inventory & Tracking
+                cur.execute("""
+                    SELECT cup_code, status, current_order_id, current_customer, total_uses
+                    FROM cups
+                    ORDER BY cup_code ASC;
+                """)
+                cups = cur.fetchall()
+                if cups:
+                    print(f"{Color.BOLD}🍵 4. CUP INVENTORY & LIFECYCLE (Fixed Pool of {len(cups)}):{Color.RESET}")
+                    print(f"{Color.DIM}{'─' * 74}{Color.RESET}")
+                    print(f" {'Cup Code':<10} {'Status':<20} {'Current Holder / Order':<30} {'Uses'}")
+                    print(f"{Color.DIM}{'─' * 74}{Color.RESET}")
+                    for c_code, c_status, c_order, c_cust, c_uses in cups:
+                        if c_status == "CLEAN_ON_SHELF":
+                            status_str = f"{Color.GREEN}CLEAN_ON_SHELF{Color.RESET}"
+                            holder = f"{Color.DIM}Ready on shelf{Color.RESET}"
+                        elif c_status == "IN_BREWING":
+                            status_str = f"{Color.YELLOW}IN_BREWING{Color.RESET}"
+                            holder = f"Barista (Order {c_order})"
+                        elif c_status == "WITH_CUSTOMER":
+                            status_str = f"{Color.CYAN}WITH_CUSTOMER{Color.RESET}"
+                            holder = f"{c_cust} ({c_order})"
+                        elif c_status == "IN_DISHWASHER":
+                            status_str = f"{Color.MAGENTA}IN_DISHWASHER{Color.RESET}"
+                            holder = f"Washing & Sanitizing"
+                        else:
+                            status_str = c_status
+                            holder = "-"
+                        print(f" {Color.BOLD}{c_code:<10}{Color.RESET} {status_str:<30} {holder:<30} {c_uses}")
+                    print()
+
     except Exception as e:
         print(f"[Error] Could not load dashboard: {e}")
 

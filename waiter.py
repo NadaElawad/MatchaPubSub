@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
-from db import get_product_price, log_order, update_order_status
+from db import get_product_price, log_order, update_order_status, claim_cup_for_order, hand_cup_to_customer
 
 
 class Color:
@@ -76,12 +76,14 @@ def main():
         "group.id": "matcha-waiter-group",
         "auto.offset.reset": "earliest",
         "enable.auto.commit": False,  # Manual commit after drink is prepared!
+        "broker.address.family": "v4",
     }
 
     # Producer configuration: sends ready events
     producer_conf = {
         "bootstrap.servers": bootstrap_server,
         "client.id": "matcha-waiter-producer",
+        "broker.address.family": "v4",
     }
 
     try:
@@ -141,12 +143,23 @@ def main():
             milk = order_data.get("milk", "Standard")
             sweetness = order_data.get("sweetness", "Normal")
 
+            # Claim an available clean cup from the shelf
+            cup_code = claim_cup_for_order(order_id, client_name)
+            while cup_code is None and running:
+                print(f"   {Color.RED}⚠️ [Cup Shortage] All cups in use! Waiting for clean cups from dishwasher...{Color.RESET}")
+                time.sleep(1.5)
+                cup_code = claim_cup_for_order(order_id, client_name)
+
+            if not running:
+                break
+
             orders_served += 1
             print(f"{Color.BOLD}{Color.CYAN}╭──────────────────────────────────────────────────────────╮{Color.RESET}")
             print(f"{Color.BOLD}│ 📋 NEW TICKET #{orders_served:<3} | Order: {Color.YELLOW}{order_id:<12}{Color.RESET}{Color.BOLD}         │{Color.RESET}")
             print(f"{Color.BOLD}│ Customer : {Color.GREEN}{client_name:<46}{Color.RESET}{Color.BOLD}│{Color.RESET}")
             print(f"{Color.BOLD}│ Drink    : {drink:<46}│{Color.RESET}")
             print(f"{Color.BOLD}│ Options  : {milk}, {sweetness} sweetness{' ' * max(0, 31 - len(milk) - len(sweetness))}│{Color.RESET}")
+            print(f"{Color.BOLD}│ Cup      : {Color.MAGENTA}{cup_code} (Ceramic){Color.RESET}{' ' * max(0, 36 - len(cup_code))}│{Color.RESET}")
             print(f"{Color.BOLD}{Color.CYAN}╰──────────────────────────────────────────────────────────╯{Color.RESET}")
 
             # Update database status to PREPARING
@@ -158,7 +171,7 @@ def main():
             time.sleep(step_delay)
             print(f"   {Color.GREEN}🥣 Step 2:{Color.RESET} Whisking rapidly with bamboo chasen until silky foam forms...")
             time.sleep(step_delay)
-            print(f"   {Color.GREEN}🥛 Step 3:{Color.RESET} Pouring fresh {milk} and ice into cup...")
+            print(f"   {Color.GREEN}🥛 Step 3:{Color.RESET} Pouring fresh {milk} into {Color.MAGENTA}{cup_code}{Color.RESET} with artisan ice...")
 
             # Fetch price from products table
             price = get_product_price(drink)
@@ -171,6 +184,7 @@ def main():
                 "milk": milk,
                 "sweetness": sweetness,
                 "price": price,
+                "cup_code": cup_code,
                 "status": "READY",
                 "prepared_by": "Kaito (Solo Waiter)",
                 "ready_at": datetime.now(timezone.utc).isoformat(),
@@ -184,13 +198,16 @@ def main():
             )
             producer.flush()
 
+            # Transition cup to customer in database (IN_BREWING -> WITH_CUSTOMER)
+            hand_cup_to_customer(cup_code, order_id=order_id, customer_name=client_name)
+
             # Record into PostgreSQL order_logs table
             log_order(ready_event)
 
             # Commit offset to Kafka to confirm order is fulfilled
             consumer.commit(msg)
 
-            print(f"   {Color.BOLD}{Color.YELLOW}🔔 DING! Order {order_id} for {client_name} (${price:.2f}) is READY at the counter!{Color.RESET}\n")
+            print(f"   {Color.BOLD}{Color.YELLOW}🔔 DING! Order {order_id} for {client_name} in {cup_code} (${price:.2f}) is READY at the counter!{Color.RESET}\n")
 
     except KeyboardInterrupt:
         pass

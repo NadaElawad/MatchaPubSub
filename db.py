@@ -162,7 +162,7 @@ def get_order(order_id):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT order_id, customer_name, drink_name, milk, sweetness, price, status, prepared_by, ordered_at, ready_at
+                    SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
                     FROM orders
                     WHERE order_id = %s;
                     """,
@@ -189,7 +189,7 @@ def get_recent_orders(limit=20, customer_name=None):
                 if customer_name:
                     cur.execute(
                         """
-                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, status, prepared_by, ordered_at, ready_at
+                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
                         FROM orders
                         WHERE LOWER(customer_name) = LOWER(%s)
                         ORDER BY ordered_at DESC
@@ -200,7 +200,7 @@ def get_recent_orders(limit=20, customer_name=None):
                 else:
                     cur.execute(
                         """
-                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, status, prepared_by, ordered_at, ready_at
+                        SELECT order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
                         FROM orders
                         ORDER BY ordered_at DESC
                         LIMIT %s;
@@ -260,6 +260,7 @@ def record_order(order_data):
     milk = order_data.get("milk")
     sweetness = order_data.get("sweetness")
     price = float(order_data.get("price", 6.50))
+    cup_code = order_data.get("cup_code")
     status = order_data.get("status", "READY")
     prepared_by = order_data.get("prepared_by", "Kaito (Solo Waiter)")
     ordered_at = order_data.get("ordered_at")
@@ -272,14 +273,15 @@ def record_order(order_data):
                 cur.execute(
                     """
                     INSERT INTO orders (
-                        order_id, customer_name, drink_name, milk, sweetness, price, status, prepared_by, ordered_at, ready_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, NOW()), COALESCE(%s, NOW()))
+                        order_id, customer_name, drink_name, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, NOW()), COALESCE(%s, NOW()))
                     ON CONFLICT (order_id) DO UPDATE SET
+                        cup_code = COALESCE(EXCLUDED.cup_code, orders.cup_code),
                         status = EXCLUDED.status,
                         prepared_by = EXCLUDED.prepared_by,
                         ready_at = EXCLUDED.ready_at;
                     """,
-                    (order_id, customer_name, drink, milk, sweetness, price, status, prepared_by, ordered_at, ready_at),
+                    (order_id, customer_name, drink, milk, sweetness, price, cup_code, status, prepared_by, ordered_at, ready_at),
                 )
 
                 # 2. Upsert customer profile: increment total_spent and total_orders
@@ -351,3 +353,249 @@ def record_order(order_data):
 
 # Alias for backward compatibility
 log_order = record_order
+
+
+# ==========================================
+# 🍵 CUP INVENTORY & LIFECYCLE MANAGEMENT
+# ==========================================
+
+def claim_cup_for_order(order_id, customer_name, actor="Barista"):
+    """
+    Atomically claims one clean cup from the shelf.
+    Uses 'FOR UPDATE SKIP LOCKED' so concurrent baristas never contend or double-claim.
+    Transitions: CLEAN_ON_SHELF -> IN_BREWING
+    Returns cup_code (e.g. 'CUP-01') or None if shelf is empty.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE cups
+                    SET 
+                        status = 'IN_BREWING',
+                        current_order_id = %s,
+                        current_customer = %s,
+                        total_uses = total_uses + 1,
+                        updated_at = NOW()
+                    WHERE id = (
+                        SELECT id FROM cups
+                        WHERE status = 'CLEAN_ON_SHELF'
+                        ORDER BY id ASC
+                        FOR UPDATE SKIP LOCKED
+                        LIMIT 1
+                    )
+                    RETURNING cup_code;
+                    """,
+                    (order_id, customer_name),
+                )
+                row = cur.fetchone()
+                if row:
+                    cup_code = row[0]
+                    # Log audit trail
+                    cur.execute(
+                        """
+                        INSERT INTO cup_audit_log (cup_code, from_status, to_status, order_id, actor)
+                        VALUES (%s, 'CLEAN_ON_SHELF', 'IN_BREWING', %s, %s);
+                        """,
+                        (cup_code, order_id, actor),
+                    )
+                    # Associate cup with order in orders table
+                    cur.execute(
+                        "UPDATE orders SET cup_code = %s WHERE order_id = %s;",
+                        (cup_code, order_id),
+                    )
+                    conn.commit()
+                    return cup_code
+                return None
+    except Exception as e:
+        print(f"[DB Error] claim_cup_for_order failed: {e}")
+        return None
+
+
+def hand_cup_to_customer(cup_code, order_id=None, customer_name=None, actor="Barista"):
+    """
+    Transitions cup from IN_BREWING -> WITH_CUSTOMER when customer collects drink.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE cups
+                    SET 
+                        status = 'WITH_CUSTOMER',
+                        current_customer = COALESCE(%s, current_customer),
+                        current_order_id = COALESCE(%s, current_order_id),
+                        updated_at = NOW()
+                    WHERE cup_code = %s;
+                    """,
+                    (customer_name, order_id, cup_code),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO cup_audit_log (cup_code, from_status, to_status, order_id, actor)
+                    VALUES (%s, 'IN_BREWING', 'WITH_CUSTOMER', %s, %s);
+                    """,
+                    (cup_code, order_id, actor),
+                )
+                conn.commit()
+                return True
+    except Exception as e:
+        print(f"[DB Error] hand_cup_to_customer failed for {cup_code}: {e}")
+        return False
+
+
+def return_cup_to_dishwasher(cup_code, actor="Customer"):
+    """
+    Transitions cup from WITH_CUSTOMER -> IN_DISHWASHER.
+    Called when customer brings their used cup to the return station.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT status, current_order_id FROM cups WHERE cup_code = %s;",
+                    (cup_code,),
+                )
+                row = cur.fetchone()
+                from_status = row[0] if row else "WITH_CUSTOMER"
+                order_id = row[1] if row else None
+
+                cur.execute(
+                    """
+                    UPDATE cups
+                    SET 
+                        status = 'IN_DISHWASHER',
+                        updated_at = NOW()
+                    WHERE cup_code = %s;
+                    """,
+                    (cup_code,),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO cup_audit_log (cup_code, from_status, to_status, order_id, actor)
+                    VALUES (%s, %s, 'IN_DISHWASHER', %s, %s);
+                    """,
+                    (cup_code, from_status, order_id, actor),
+                )
+                conn.commit()
+                return True
+    except Exception as e:
+        print(f"[DB Error] return_cup_to_dishwasher failed for {cup_code}: {e}")
+        return False
+
+
+def sanitize_and_shelve_cup(cup_code, actor="Dishwasher"):
+    """
+    Transitions cup from IN_DISHWASHER -> CLEAN_ON_SHELF.
+    Resets current_order_id and current_customer, marks last_washed_at.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE cups
+                    SET 
+                        status = 'CLEAN_ON_SHELF',
+                        current_order_id = NULL,
+                        current_customer = NULL,
+                        last_washed_at = NOW(),
+                        updated_at = NOW()
+                    WHERE cup_code = %s;
+                    """,
+                    (cup_code,),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO cup_audit_log (cup_code, from_status, to_status, actor)
+                    VALUES (%s, 'IN_DISHWASHER', 'CLEAN_ON_SHELF', %s);
+                    """,
+                    (cup_code, actor),
+                )
+                conn.commit()
+                return True
+    except Exception as e:
+        print(f"[DB Error] sanitize_and_shelve_cup failed for {cup_code}: {e}")
+        return False
+
+
+def get_cup_inventory_summary():
+    """
+    Returns high-level summary of all cups grouped by status.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """
+                    SELECT cup_code, status, current_order_id, current_customer, total_uses, last_washed_at
+                    FROM cups
+                    ORDER BY cup_code ASC;
+                    """
+                )
+                cups = cur.fetchall()
+                for c in cups:
+                    if c["last_washed_at"]:
+                        c["last_washed_at"] = c["last_washed_at"].isoformat()
+
+                shelf = [c["cup_code"] for c in cups if c["status"] == "CLEAN_ON_SHELF"]
+                brewing = [c["cup_code"] for c in cups if c["status"] == "IN_BREWING"]
+                customer = [c["cup_code"] for c in cups if c["status"] == "WITH_CUSTOMER"]
+                dishwasher = [c["cup_code"] for c in cups if c["status"] == "IN_DISHWASHER"]
+
+                return {
+                    "total_cups": len(cups),
+                    "counts": {
+                        "CLEAN_ON_SHELF": len(shelf),
+                        "IN_BREWING": len(brewing),
+                        "WITH_CUSTOMER": len(customer),
+                        "IN_DISHWASHER": len(dishwasher),
+                    },
+                    "shelf_clean": shelf,
+                    "in_brewing": brewing,
+                    "with_customer": customer,
+                    "in_dishwasher": dishwasher,
+                    "cups": cups,
+                }
+    except Exception as e:
+        print(f"[DB Error] get_cup_inventory_summary failed: {e}")
+        return {"total_cups": 0, "counts": {}, "cups": []}
+
+
+def get_cup_audit_trail(cup_code=None, limit=20):
+    """Fetch recent audit log entries for cup lifecycle transitions."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if cup_code:
+                    cur.execute(
+                        """
+                        SELECT id, cup_code, from_status, to_status, order_id, actor, created_at
+                        FROM cup_audit_log
+                        WHERE cup_code = %s
+                        ORDER BY id DESC
+                        LIMIT %s;
+                        """,
+                        (cup_code, limit),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        SELECT id, cup_code, from_status, to_status, order_id, actor, created_at
+                        FROM cup_audit_log
+                        ORDER BY id DESC
+                        LIMIT %s;
+                        """,
+                        (limit,),
+                    )
+                rows = cur.fetchall()
+                for r in rows:
+                    if r["created_at"]:
+                        r["created_at"] = r["created_at"].isoformat()
+                return rows
+    except Exception as e:
+        print(f"[DB Error] get_cup_audit_trail failed: {e}")
+        return []
+

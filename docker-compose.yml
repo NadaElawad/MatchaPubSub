@@ -70,6 +70,22 @@ services:
     depends_on:
       - kafka
       - postgres
+  dishwasher:
+    build: .
+    container_name: matcha-dishwasher
+    command: ["python", "-u", "dishwasher.py"]
+    environment:
+      BOOTSTRAP_SERVER: kafka:29092
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: matcha_cafe
+      DB_USER: barista
+      DB_PASSWORD: matchapassword
+      RETURNS_TOPIC: matcha-cup-returns
+      CLEAN_TOPIC: matcha-cup-clean
+    depends_on:
+      - kafka
+      - postgres
     networks:
       - kafka-net
 

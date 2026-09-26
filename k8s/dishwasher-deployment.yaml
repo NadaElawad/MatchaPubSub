@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: matcha-waiter
+  name: matcha-dishwasher
   labels:
-    app: matcha-waiter
+    app: matcha-dishwasher
 spec:
-  replicas: 1 # Start with 1 Solo Waiter
+  replicas: 1
   selector:
     matchLabels:
-      app: matcha-waiter
+      app: matcha-dishwasher
   template:
     metadata:
       labels:
-        app: matcha-waiter
+        app: matcha-dishwasher
     spec:
       containers:
-        - name: waiter
+        - name: dishwasher
           image: matcha-cafe:v4
           imagePullPolicy: IfNotPresent
-          command: ["python", "-u", "waiter.py"]
+          command: ["python", "-u", "dishwasher.py"]
           envFrom:
             - configMapRef:
                 name: cafe-config

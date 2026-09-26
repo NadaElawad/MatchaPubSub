@@ -167,9 +167,21 @@ def run_api_client(api_url, name, drink, milk, sweetness, timeout=60):
 
                 elif current_status == "READY":
                     barista = current_order.get("prepared_by") or "The Barista"
-                    print(f"{Color.BOLD}{Color.GREEN}🎉 DING! {barista} announced: 'Order {order_id} for {name}!'{Color.RESET}")
+                    cup_code = current_order.get("cup_code") or "Ceramic Cup"
+                    print(f"{Color.BOLD}{Color.GREEN}🎉 DING! {barista} announced: 'Order {order_id} for {name} in {cup_code}!'{Color.RESET}")
                     print(f"{Color.GREEN}   Drink : {drink} ({milk}, {sweetness}){Color.RESET}")
-                    print(f"\n{Color.BOLD}🍵 {name} picked up the freshly brewed matcha! Enjoy! 😋✨{Color.RESET}\n")
+                    print(f"\n{Color.BOLD}🍵 {name} picked up the freshly brewed matcha in {Color.MAGENTA}{cup_code}{Color.RESET}! Enjoy! 😋✨\n")
+
+                    # Simulate drinking time
+                    print(f"{Color.DIM}☕ {name} is sipping matcha at the café table...{Color.RESET}")
+                    time.sleep(2.0)
+
+                    # Return cup to dishwasher station via API
+                    print(f"{Color.CYAN}🍽️ {name} finished the drink and returned {Color.MAGENTA}{cup_code}{Color.RESET}{Color.CYAN} to the dishwasher counter!{Color.RESET}\n")
+                    try:
+                        requests.post(f"{api_url}/cups/{cup_code}/return?customer_name={name}", timeout=3.0)
+                    except Exception as e:
+                        print(f"[Client Warning] Could not notify cup return via API: {e}")
                     return
         except Exception:
             pass
@@ -234,10 +246,31 @@ def run_direct_kafka_client(bootstrap_server, orders_topic, ready_topic, name, d
             if announced_key == order_id:
                 ready_data = json.loads(msg.value().decode("utf-8"))
                 prep_by = ready_data.get("prepared_by", "The Waiter")
-                print(f"{Color.BOLD}{Color.GREEN}🎉 DING! Barista called: 'Order {order_id} for {name}!'{Color.RESET}")
+                cup_code = ready_data.get("cup_code", "Ceramic Cup")
+                print(f"{Color.BOLD}{Color.GREEN}🎉 DING! Barista called: 'Order {order_id} for {name} in {cup_code}!'{Color.RESET}")
                 print(f"{Color.GREEN}   Prepared by : {prep_by}{Color.RESET}")
                 print(f"{Color.GREEN}   Ready Drink : {drink} ({milk}, {sweetness}){Color.RESET}")
-                print(f"\n{Color.BOLD}🍵 {name} picked up the matcha from the counter. Enjoy! 😋✨{Color.RESET}\n")
+                print(f"\n{Color.BOLD}🍵 {name} picked up the matcha in {Color.MAGENTA}{cup_code}{Color.RESET}! Enjoy! 😋✨\n")
+
+                # Simulate drinking
+                print(f"{Color.DIM}☕ {name} is sipping matcha at the café table...{Color.RESET}")
+                time.sleep(2.0)
+
+                # Return cup via Kafka returns topic
+                returns_topic = "matcha-cup-returns"
+                print(f"\n{Color.CYAN}🍽️ {name} finished the drink and returned {Color.MAGENTA}{cup_code}{Color.RESET}{Color.CYAN} to the dishwasher counter!{Color.RESET}\n")
+                return_event = {
+                    "cup_code": cup_code,
+                    "customer_name": name,
+                    "order_id": order_id,
+                    "returned_at": datetime.now(timezone.utc).isoformat(),
+                }
+                producer.produce(
+                    topic=returns_topic,
+                    key=cup_code.encode("utf-8"),
+                    value=json.dumps(return_event).encode("utf-8"),
+                )
+                producer.flush()
                 return
     finally:
         consumer.close()
