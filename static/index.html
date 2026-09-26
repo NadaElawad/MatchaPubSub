@@ -2277,16 +2277,6 @@
       </nav>
 
       <div class="nav-stats">
-        <button class="btn-sound-toggle" id="btnSoundToggleNav" onclick="toggleAudio()" title="Toggle Café Ambient & Order Audio">
-          <span id="audioNavIcon">🔊</span>
-          <span id="audioNavText">Sound ON</span>
-        </button>
-
-        <div class="badge-barista">
-          <div class="pulse-dot"></div>
-          <span>Kaito on Duty</span>
-        </div>
-        
         <div class="order-tray-badge" id="headerTrayBadge" onclick="switchView('counter')">
           <span>🛒</span>
           <span id="headerTrayText">Tray: Empty</span>
@@ -2740,7 +2730,10 @@
     /* ========================================================
        HYBRID WEB AUDIO + HTML5 MEDIA ENGINE (BULLETPROOF)
        ======================================================== */
-    let soundEnabled = localStorage.getItem("matcha_sound_enabled") !== "false";
+    const soundEnabled = true;
+    try {
+      localStorage.removeItem("matcha_sound_enabled");
+    } catch (_) {}
     let currentDinerCount = 0;
     let _cafeAudioCtx = null;
     let ambianceMasterGain = null;
@@ -3022,39 +3015,8 @@
       }
     }
 
-    function toggleAudio() {
-      soundEnabled = !soundEnabled;
-      localStorage.setItem("matcha_sound_enabled", soundEnabled ? "true" : "false");
-      getAudioContext();
-      updateAudioToggleBtns();
-      if (soundEnabled) {
-        // Immediate audible bell chime so the user knows sound is ON!
-        playCounterBell();
-        if (currentDinerCount > 0) {
-          startCafeAmbiance(currentDinerCount);
-        }
-      } else {
-        stopCafeAmbiance();
-      }
-    }
-
     function updateAudioToggleBtns() {
-      const navIcon = document.getElementById("audioNavIcon");
-      const navText = document.getElementById("audioNavText");
-      const navBtn = document.getElementById("btnSoundToggleNav");
-      if (navIcon) navIcon.innerText = soundEnabled ? "🔊" : "🔇";
-      if (navText) {
-        if (soundEnabled) {
-          navText.innerText = currentDinerCount > 0 ? `Sound ON (${currentDinerCount} guests)` : "Sound ON";
-        } else {
-          navText.innerText = "Sound OFF";
-        }
-      }
-      if (navBtn) {
-        navBtn.classList.toggle("muted", !soundEnabled);
-        navBtn.classList.toggle("ambiance-active", soundEnabled && currentDinerCount > 0);
-        navBtn.title = soundEnabled ? "Sound Effects & Café Ambiance ON" : "Sound Effects Muted (Click to Enable)";
-      }
+      // Sound button removed from navigation; sound is permanently enabled
     }
 
     // Unlock audio context on any user interaction anywhere on page
