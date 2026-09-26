@@ -1482,17 +1482,13 @@ def get_active_diners() -> dict[str, Any]:
                 total_cups = sum(cup_counts.values()) or DEFAULT_CUP_CAPACITY
                 cups_in_circulation = in_brewing + with_customer + in_dishwasher
 
-        active_diners: list[dict[str, Any]] = []
-        occupied_seats: set[int] = {
-            info["seat"] for info in _diner_assignments.values()
-        }
-
+        # 1. Filter valid active dine-in orders within the dining stay duration
+        valid_orders: list[tuple[dict[str, Any], float, float, datetime]] = []
         for order in recent_orders:
             if order.get("dining_option") == DiningOption.TAKE_AWAY:
                 continue
 
-            oid = order["order_id"]
-            ordered_at = order["ordered_at"]
+            ordered_at = order.get("ordered_at")
             if ordered_at and hasattr(ordered_at, "tzinfo") and ordered_at.tzinfo is None:
                 ordered_at = ordered_at.replace(tzinfo=timezone.utc)
 
@@ -1501,11 +1497,26 @@ def get_active_diners() -> dict[str, Any]:
 
             elapsed = (now - ordered_at).total_seconds()
             remaining = max(0.0, DINE_IN_DURATION_SECONDS - elapsed)
+            if remaining > 0:
+                valid_orders.append((order, elapsed, remaining, ordered_at))
 
-            # Customer has departed
-            if remaining <= 0:
-                _diner_assignments.pop(oid, None)
-                continue
+        # 2. Reconcile _diner_assignments: Prune all departed or expired orders
+        active_oids = {item[0]["order_id"] for item in valid_orders}
+        for stale_oid in list(_diner_assignments.keys()):
+            if stale_oid not in active_oids:
+                _diner_assignments.pop(stale_oid, None)
+
+        # 3. Determine currently occupied seats strictly from verified active diners
+        occupied_seats: set[int] = {
+            info["seat"] for info in _diner_assignments.values()
+        }
+
+        # 4. Sort chronologically so earliest arrivals retain/fill lower seat indices
+        valid_orders.sort(key=lambda x: x[3])
+
+        active_diners: list[dict[str, Any]] = []
+        for order, elapsed, remaining, ordered_at in valid_orders:
+            oid = order["order_id"]
 
             # Assign character and seat if first time seeing this order
             if oid not in _diner_assignments:
@@ -1525,9 +1536,9 @@ def get_active_diners() -> dict[str, Any]:
                     "character": char,
                     "seat": seat,
                 }
+                occupied_seats.add(seat)
 
             assignment = _diner_assignments[oid]
-            occupied_seats.add(assignment["seat"])
 
             status_badge, action_label = get_dining_action_label(
                 order["drink_name"], order["status"], order.get("items")

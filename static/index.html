@@ -1764,6 +1764,95 @@
       background: #2e3744;
     }
 
+    /* Sound Effects Toggle Button */
+    .btn-sound-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .btn-sound-toggle:hover {
+      background: var(--matcha-froth);
+      border-color: var(--matcha);
+      color: var(--matcha);
+      transform: translateY(-1px);
+    }
+
+    .btn-sound-toggle.muted {
+      color: var(--text-muted);
+      opacity: 0.75;
+      background: rgba(0, 0, 0, 0.04);
+      border-color: #d1d5db;
+    }
+
+    .btn-sound-toggle.ambiance-active {
+      border-color: #2E5A27;
+      background: #EBF3E8;
+      color: #1E3F20;
+      box-shadow: 0 0 10px rgba(46, 90, 39, 0.25);
+    }
+
+    /* Scout Rush Simulator Button */
+    .btn-scout-rush {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #1b3822 0%, #2f613c 100%);
+      color: #EDE8DE;
+      border: 1px solid rgba(163, 230, 53, 0.5);
+      border-radius: var(--radius-sm);
+      padding: 6px 14px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(46, 90, 39, 0.25), 0 0 10px rgba(163, 230, 53, 0.15);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .btn-scout-rush:hover:not(:disabled) {
+      background: linear-gradient(135deg, #24492d 0%, #3a754a 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(46, 90, 39, 0.35), 0 0 16px rgba(163, 230, 53, 0.3);
+      border-color: rgba(163, 230, 53, 0.85);
+      color: #A3E635;
+    }
+
+    .btn-scout-rush:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn-scout-rush:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      filter: grayscale(0.2);
+    }
+
+    .btn-scout-rush .rush-icon {
+      font-size: 0.88rem;
+      display: inline-block;
+    }
+
+    .btn-scout-rush .rush-icon.spin {
+      animation: iconSpin 0.9s infinite linear;
+    }
+
+    @keyframes iconSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     /* Dining Table Scene */
     .dining-table-scene {
       display: flex;
@@ -2186,6 +2275,11 @@
       </nav>
 
       <div class="nav-stats">
+        <button class="btn-sound-toggle" id="btnSoundToggleNav" onclick="toggleAudio()" title="Toggle Café Ambient & Order Audio">
+          <span id="audioNavIcon">🔊</span>
+          <span id="audioNavText">Sound ON</span>
+        </button>
+
         <div class="badge-barista">
           <div class="pulse-dot"></div>
           <span>Kaito on Duty</span>
@@ -2410,6 +2504,10 @@
           </div>
           <div class="hall-status-group">
             <span class="hall-occupancy-pill" id="messHallOccupancy">0 / 12 Seats Occupied</span>
+            <button class="btn-scout-rush" id="btnScoutRush" onclick="triggerScoutRush(5)" title="Dispatch 5 Scouts to fill the dining table!">
+              <span class="rush-icon">⚡</span>
+              <span class="rush-label">Simulate Scout Rush!</span>
+            </button>
             <button class="btn-refresh-hall" onclick="pollActiveDiners()">🔄 Refresh</button>
           </div>
         </div>
@@ -2614,7 +2712,387 @@
     Matcha PubSub System • Powered by Apache Kafka, PostgreSQL & FastAPI • Handcrafted with 🍵
   </footer>
 
+  <!-- High-Fidelity Audio Elements (Native Media Engine & Dual Layer) -->
+  <audio id="audioBell" preload="auto">
+    <source src="/static/audio/bell.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/bell.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioFanfare" preload="auto">
+    <source src="/static/audio/fanfare.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/fanfare.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioWhisk" preload="auto">
+    <source src="/static/audio/whisk.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/whisk.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioClick" preload="auto">
+    <source src="/static/audio/click.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/click.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioAmbiance" loop preload="auto">
+    <source src="/static/audio/cafe_ambiance.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/cafe_ambiance.wav?v=2" type="audio/wav">
+  </audio>
+
   <script>
+    /* ========================================================
+       HYBRID WEB AUDIO + HTML5 MEDIA ENGINE (BULLETPROOF)
+       ======================================================== */
+    let soundEnabled = localStorage.getItem("matcha_sound_enabled") !== "false";
+    let currentDinerCount = 0;
+    let _cafeAudioCtx = null;
+    let ambianceMasterGain = null;
+    let ambianceNoiseNode = null;
+    let ambianceClinkTimer = null;
+
+    // Guaranteed singleton AudioContext management (resumed synchronously on gesture)
+    function getAudioContext() {
+      if (!_cafeAudioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          _cafeAudioCtx = new AudioContextClass();
+        }
+      }
+      if (_cafeAudioCtx && _cafeAudioCtx.state === 'suspended') {
+        _cafeAudioCtx.resume().catch(() => {});
+      }
+      return _cafeAudioCtx;
+    }
+
+    function ensureAudioContextRunning() {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        return ctx.resume();
+      }
+      return Promise.resolve();
+    }
+
+    // HTML5 media playback helper (safe against InvalidStateError & unhandled rejections)
+    function playHtmlAudio(id, volume = 1.0) {
+      try {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.readyState >= 1) {
+          el.currentTime = 0;
+        }
+        el.volume = Math.max(0, Math.min(1, volume));
+        const p = el.play();
+        if (p !== undefined) {
+          p.catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    function playHtmlAudioLoop(id, volume = 0.5) {
+      try {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.loop = true;
+        el.volume = Math.max(0, Math.min(1, volume));
+        if (el.paused) {
+          const p = el.play();
+          if (p !== undefined) {
+            p.catch(() => {});
+          }
+        }
+      } catch (e) {}
+    }
+
+    function pauseHtmlAudio(id) {
+      try {
+        const el = document.getElementById(id);
+        if (!el || el.paused) return;
+        el.pause();
+        if (el.readyState >= 1) {
+          el.currentTime = 0;
+        }
+      } catch (e) {}
+    }
+
+    // 1. Crystal Counter Service Bell (Harmonic E6 + B5 sine chime)
+    function playCounterBell() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioBell", 1.0);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const freqs = [1318.51, 987.77, 2637.02];
+        const amps = [0.25, 0.15, 0.05];
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(amps[idx], now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 1.6);
+        });
+      } catch (e) {}
+    }
+
+    // 2. Chasen Matcha Whisking (Bamboo chasen against ceramic bowl)
+    function playWhiskingSound() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioWhisk", 0.9);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const strokes = 4;
+        const strokeDur = 0.07;
+        const gap = 0.03;
+        for (let i = 0; i < strokes; i++) {
+          const strokeStart = now + (i * (strokeDur + gap));
+          const bufferSize = Math.max(128, Math.floor(ctx.sampleRate * strokeDur));
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let j = 0; j < bufferSize; j++) {
+            data[j] = (Math.random() * 2 - 1) * Math.sin(Math.PI * (j / bufferSize));
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(1300 + (i % 2 === 0 ? 250 : -200), strokeStart);
+          filter.Q.setValueAtTime(2.5, strokeStart);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.01, strokeStart);
+          gain.gain.linearRampToValueAtTime(0.24, strokeStart + (strokeDur * 0.4));
+          gain.gain.exponentialRampToValueAtTime(0.0001, strokeStart + strokeDur);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start(strokeStart);
+          noise.stop(strokeStart + strokeDur);
+        }
+      } catch (e) {}
+    }
+
+    // 3. Survey Corps Brass Fanfare (4-note triumphant brass blast)
+    function playScoutFanfare() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioFanfare", 1.0);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const notes = [
+          { freq: 392.00, start: 0.00, dur: 0.18 },
+          { freq: 523.25, start: 0.18, dur: 0.18 },
+          { freq: 659.25, start: 0.36, dur: 0.18 },
+          { freq: 783.99, start: 0.54, dur: 0.65 }
+        ];
+        notes.forEach(n => {
+          const noteStart = now + n.start;
+          const noteEnd = noteStart + n.dur;
+          const oscTri = ctx.createOscillator();
+          const oscSaw = ctx.createOscillator();
+          const filter = ctx.createBiquadFilter();
+          const gain = ctx.createGain();
+          oscTri.type = "triangle";
+          oscTri.frequency.setValueAtTime(n.freq, noteStart);
+          oscSaw.type = "sawtooth";
+          oscSaw.frequency.setValueAtTime(n.freq, noteStart);
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(1400, noteStart);
+          filter.frequency.exponentialRampToValueAtTime(850, noteEnd);
+          filter.Q.setValueAtTime(2.0, noteStart);
+          gain.gain.setValueAtTime(0.001, noteStart);
+          gain.gain.linearRampToValueAtTime(0.26, noteStart + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+          oscTri.connect(filter);
+          oscSaw.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          oscTri.start(noteStart);
+          oscSaw.start(noteStart);
+          oscTri.stop(noteEnd);
+          oscSaw.stop(noteEnd);
+        });
+      } catch (e) {}
+    }
+
+    // 4. Wooden Click (Traditional Japanese hyōshigi block)
+    function playWoodClick() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioClick", 0.8);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(920, now);
+        osc.frequency.exponentialRampToValueAtTime(340, now + 0.035);
+        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.035);
+      } catch (e) {}
+    }
+
+    // 5. Ambient Kyoto Tea House Soundscape (Room Presence + Periodic Porcelain Clinks)
+    function ensureAmbianceNodes(ctx) {
+      if (ambianceMasterGain && ambianceNoiseNode) return;
+      try {
+        ambianceMasterGain = ctx.createGain();
+        ambianceMasterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        ambianceMasterGain.connect(ctx.destination);
+
+        const bufferLength = Math.max(128, ctx.sampleRate * 5);
+        const noiseBuffer = ctx.createBuffer(1, bufferLength, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.045;
+          b6 = white * 0.115926;
+        }
+
+        ambianceNoiseNode = ctx.createBufferSource();
+        ambianceNoiseNode.buffer = noiseBuffer;
+        ambianceNoiseNode.loop = true;
+
+        const roomFilter = ctx.createBiquadFilter();
+        roomFilter.type = "lowpass";
+        roomFilter.frequency.setValueAtTime(450, ctx.currentTime);
+        roomFilter.Q.setValueAtTime(1.0, ctx.currentTime);
+
+        ambianceNoiseNode.connect(roomFilter);
+        roomFilter.connect(ambianceMasterGain);
+        ambianceNoiseNode.start(0);
+      } catch (e) {}
+    }
+
+    function schedulePorcelainClink(ctx) {
+      if (!soundEnabled || currentDinerCount <= 0 || !ambianceMasterGain) return;
+      try {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const clinkFreq = 2300 + Math.random() * 1400;
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(clinkFreq, now);
+        gain.gain.setValueAtTime(0.04 + Math.random() * 0.03, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch (e) {}
+    }
+
+    function startCafeAmbiance(occupancy = 1) {
+      if (!soundEnabled) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      ensureAmbianceNodes(ctx);
+      const targetGain = Math.min(0.28, 0.10 + (occupancy * 0.015));
+      if (ambianceMasterGain) {
+        const now = ctx.currentTime;
+        ambianceMasterGain.gain.cancelScheduledValues(now);
+        ambianceMasterGain.gain.setValueAtTime(Math.max(0.0001, ambianceMasterGain.gain.value), now);
+        ambianceMasterGain.gain.linearRampToValueAtTime(targetGain, now + 1.2);
+      }
+      if (!ambianceClinkTimer) {
+        const loopClink = () => {
+          if (soundEnabled && currentDinerCount > 0) {
+            schedulePorcelainClink(ctx);
+            ambianceClinkTimer = setTimeout(loopClink, 3500 + Math.random() * 3500);
+          } else {
+            ambianceClinkTimer = null;
+          }
+        };
+        ambianceClinkTimer = setTimeout(loopClink, 2000);
+      }
+      playHtmlAudioLoop("audioAmbiance", targetGain);
+      updateAudioToggleBtns();
+    }
+
+    function stopCafeAmbiance() {
+      if (ambianceClinkTimer) {
+        clearTimeout(ambianceClinkTimer);
+        ambianceClinkTimer = null;
+      }
+      if (ambianceMasterGain && _cafeAudioCtx) {
+        const now = _cafeAudioCtx.currentTime;
+        ambianceMasterGain.gain.cancelScheduledValues(now);
+        ambianceMasterGain.gain.setValueAtTime(ambianceMasterGain.gain.value, now);
+        ambianceMasterGain.gain.linearRampToValueAtTime(0.0001, now + 1.0);
+      }
+      pauseHtmlAudio("audioAmbiance");
+      updateAudioToggleBtns();
+    }
+
+    function updateDinerAmbiance(occupancy) {
+      currentDinerCount = occupancy;
+      updateAudioToggleBtns();
+      if (occupancy > 0 && soundEnabled) {
+        startCafeAmbiance(occupancy);
+      } else {
+        stopCafeAmbiance();
+      }
+    }
+
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem("matcha_sound_enabled", soundEnabled ? "true" : "false");
+      getAudioContext();
+      updateAudioToggleBtns();
+      if (soundEnabled) {
+        // Immediate audible bell chime so the user knows sound is ON!
+        playCounterBell();
+        if (currentDinerCount > 0) {
+          startCafeAmbiance(currentDinerCount);
+        }
+      } else {
+        stopCafeAmbiance();
+      }
+    }
+
+    function updateAudioToggleBtns() {
+      const navIcon = document.getElementById("audioNavIcon");
+      const navText = document.getElementById("audioNavText");
+      const navBtn = document.getElementById("btnSoundToggleNav");
+      if (navIcon) navIcon.innerText = soundEnabled ? "🔊" : "🔇";
+      if (navText) {
+        if (soundEnabled) {
+          navText.innerText = currentDinerCount > 0 ? `Sound ON (${currentDinerCount} guests)` : "Sound ON";
+        } else {
+          navText.innerText = "Sound OFF";
+        }
+      }
+      if (navBtn) {
+        navBtn.classList.toggle("muted", !soundEnabled);
+        navBtn.classList.toggle("ambiance-active", soundEnabled && currentDinerCount > 0);
+        navBtn.title = soundEnabled ? "Sound Effects & Café Ambiance ON" : "Sound Effects Muted (Click to Enable)";
+      }
+    }
+
+    // Unlock audio context on any user interaction anywhere on page
+    function unlockAudioEngine() {
+      getAudioContext();
+      if (soundEnabled && currentDinerCount > 0) {
+        startCafeAmbiance(currentDinerCount);
+      }
+    }
+    ["click", "pointerdown", "touchstart", "keydown"].forEach(evt => {
+      window.addEventListener(evt, unlockAudioEngine, { passive: true });
+    });
+
     // State
     let products = [];
     let selectedProduct = null;
@@ -2629,6 +3107,16 @@
     // Load initial data
     document.addEventListener("DOMContentLoaded", () => {
       fetchMenu();
+      updateAudioToggleBtns();
+      pollActiveDiners();
+
+      // Unlock AudioContext on first user gesture and resume ambiance if customers are dining
+      document.addEventListener("click", () => {
+        const ctx = getAudioContext();
+        if (ctx && currentDinerCount > 0 && soundEnabled) {
+          startCafeAmbiance(currentDinerCount);
+        }
+      }, { once: true });
 
       // Customer name input listener (customer is required to enter their name)
       const customerInput = document.getElementById("customerName");
@@ -3024,6 +3512,10 @@
         // Button text while preparing
         submitBtnText.innerText = "Whisking Order...";
 
+        // Trigger ambient sound effects
+        playWoodClick();
+        playWhiskingSound();
+
         // Show live tracking box
         showTracker(data);
         startPollingOrder(activeOrderId);
@@ -3146,6 +3638,7 @@
             document.getElementById("trackerStatusBadge").style.color = "#92400E";
           } else if (order.status === "READY") {
             updateStepper(3);
+            playCounterBell();
             document.getElementById("trackerStatusBadge").innerText = "Ready at Counter! ✨";
             document.getElementById("trackerStatusBadge").style.background = "#DCFCE7";
             document.getElementById("trackerStatusBadge").style.color = "#166534";
@@ -3250,19 +3743,16 @@
         if (!analyticsPollInterval) {
           analyticsPollInterval = setInterval(() => loadAnalytics(currentAnalyticsTimeframe), 4000);
         }
-        if (dinersPollInterval) {
-          clearInterval(dinersPollInterval);
-          dinersPollInterval = null;
-        }
+        if (dinersPollInterval) clearInterval(dinersPollInterval);
+        dinersPollInterval = setInterval(pollActiveDiners, 4500);
       } else {
-        if (dinersPollInterval) {
-          clearInterval(dinersPollInterval);
-          dinersPollInterval = null;
-        }
+        // Counter view
         if (analyticsPollInterval) {
           clearInterval(analyticsPollInterval);
           analyticsPollInterval = null;
         }
+        if (dinersPollInterval) clearInterval(dinersPollInterval);
+        dinersPollInterval = setInterval(pollActiveDiners, 3500);
       }
     }
 
@@ -3282,6 +3772,9 @@
         if (occEl) {
           occEl.innerText = `${data.occupied_count} / ${data.total_seats} Seats Occupied`;
         }
+
+        // Live Ambient Café Audio: update based on diners present
+        updateDinerAmbiance(data.occupied_count || 0);
 
         // Update live cup circulation
         if (data.cups) {
@@ -3429,7 +3922,7 @@
             `“Ceremonial ${drinkName} ordered for Seat #${seatNumber}! Whisking now at the counter.”`,
             `/images/characters/${charName.toLowerCase().split(" ")[0]}.webp`
           );
-          loadRestaurantState();
+          pollActiveDiners();
         } else {
           alert(data.detail || "Could not place order for seat");
         }
@@ -3438,19 +3931,60 @@
       }
     }
 
-    async function triggerScoutRush() {
+    async function triggerScoutRush(count = 5) {
+      const btn = document.getElementById("btnScoutRush");
+      const origHtml = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="rush-icon spin">⚔️</span> Calling Scouts...`;
+      }
+      await ensureAudioContextRunning();
+      playScoutFanfare();
       try {
-        const res = await fetch("/restaurant/simulate-rush", { method: "POST" });
+        const res = await fetch(`/restaurant/simulate-rush?count=${count}`, { method: "POST" });
         const data = await res.json();
-        showQuoteToast(
-          "Erwin Smith",
-          "Commander of Survey Corps",
-          "“Dedicate your hearts! The Scout Regiment meal rush has begun — keep the ceremonial matcha flowing!”",
-          "/images/characters/erwin.webp"
-        );
-        loadRestaurantState();
+        
+        // Random inspirational quote from Scout leadership / veterans
+        const quotes = [
+          {
+            name: "Erwin Smith",
+            title: "Commander of Survey Corps",
+            quote: "“Dedicate your hearts! The Scout Regiment meal rush has begun — keep the ceremonial matcha flowing!”",
+            img: "/images/characters/erwin.webp"
+          },
+          {
+            name: "Captain Levi",
+            title: "Special Operations Squad",
+            quote: "“Don't spill a single drop on the clean mess table. Enjoy your matcha, cadets.”",
+            img: "/images/characters/levi.webp"
+          },
+          {
+            name: "Hange Zoë",
+            title: "Survey Corps Commander",
+            quote: "“Incredible! The antioxidant properties of ceremonial Uji matcha are simply astonishing!”",
+            img: "/images/characters/hange-zoe.webp"
+          },
+          {
+            name: "Sasha Braus",
+            title: "104th Training Corps",
+            quote: "“Matcha Basque Cheesecake and artisan pastries?! Quick, to the mess hall table!”",
+            img: "/images/characters/sasha-braus.webp"
+          }
+        ];
+        const q = quotes[Math.floor(Math.random() * quotes.length)];
+        showQuoteToast(q.name, q.title, q.quote, q.img);
+
+        // Immediate live table refresh
+        await pollActiveDiners();
       } catch (err) {
         console.error("Rush failed:", err);
+      } finally {
+        setTimeout(() => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+          }
+        }, 1200);
       }
     }
 

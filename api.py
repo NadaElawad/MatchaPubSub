@@ -15,9 +15,14 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import json
 import logging
+import mimetypes
 import os
 import random
 from typing import Any, AsyncGenerator
+
+# Ensure explicit web audio MIME types for Safari & modern browsers
+mimetypes.add_type("audio/wav", ".wav")
+mimetypes.add_type("audio/mp4", ".m4a")
 
 from confluent_kafka import Producer
 from fastapi import FastAPI, HTTPException, Query, status
@@ -595,18 +600,35 @@ def order_for_seat(req: SeatOrderRequest) -> dict[str, Any]:
 
 
 @app.post("/restaurant/simulate-rush", tags=["Restaurant Visualisation"])
-def simulate_scout_rush() -> dict[str, Any]:
-    """Simulates a dining rush by creating concurrent orders for Scout Regiment cadets."""
+def simulate_scout_rush(count: int = Query(default=5, ge=1, le=12)) -> dict[str, Any]:
+    """Simulates a dining rush by creating concurrent orders for Scout Regiment cadets.
+
+    Selects random cadets from the character pool and diverse items from the menu,
+    placing dine-in orders to dynamically occupy seats in the Mess Hall.
+    """
     rush_orders: list[dict[str, Any]] = []
-    candidates = random.sample(db.AOT_CHARACTERS, k=3)
+    pool = getattr(db, "_AOT_CHARACTER_POOL", db.AOT_CHARACTERS) or db.AOT_CHARACTERS
+    sample_size = min(count, len(pool))
+    candidates = random.sample(pool, k=sample_size)
+    
+    menu = db.get_menu()
+    available_items = [p for p in menu if p.get("in_stock", True)] or [
+        {"name": "Hot Uji Matcha Latte", "category": "Drink"},
+        {"name": "Iced Ceremonial Matcha Latte", "category": "Drink"},
+        {"name": "Matcha Basque Cheesecake", "category": "Pastry"},
+    ]
+
     for char in candidates:
         try:
+            chosen = random.choice(available_items)
+            item_name = chosen["name"]
+            is_drink = chosen.get("category", "Drink").lower() == "drink"
             ord_req = OrderCreateRequest(
                 customer_name=char["name"],
-                drink_name=char["favorite_drink"],
-                drink=char["favorite_drink"],
-                milk="Oat Milk",
-                sweetness="50%",
+                drink_name=item_name,
+                drink=item_name,
+                milk="Oat Milk" if is_drink else None,
+                sweetness="50%" if is_drink else None,
                 dining_option="dine_in",
             )
             res = place_order(ord_req)
@@ -616,6 +638,7 @@ def simulate_scout_rush() -> dict[str, Any]:
 
     return {
         "message": f"Scout Regiment meal rush triggered for {len(rush_orders)} cadets!",
+        "count": len(rush_orders),
         "orders": rush_orders,
     }
 
