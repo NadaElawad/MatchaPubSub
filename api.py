@@ -23,6 +23,7 @@ from confluent_kafka import Producer
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import db
@@ -88,6 +89,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static and character images assets
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    images_dir = os.path.join(static_dir, "images")
+    if os.path.exists(images_dir):
+        app.mount("/images", StaticFiles(directory=images_dir), name="images")
+
 
 # --- Pydantic Data Models ---
 
@@ -124,6 +133,7 @@ class OrderCreateRequest(BaseModel):
     drink: Optional[str] = Field(None, examples=["Strawberry Matcha Float"])
     milk: Optional[str] = Field("Oat Milk", examples=["Oat Milk"])
     sweetness: Optional[str] = Field("50%", examples=["50%"])
+    dining_option: Optional[str] = Field("take_away", examples=["dine_in", "take_away"])
 
 
 class OrderResponse(BaseModel):
@@ -320,6 +330,7 @@ def place_order(order: OrderCreateRequest):
         price=round(total_price, 2),
         ordered_at=ordered_at,
         items=processed_items,
+        dining_option=order.dining_option or "take_away",
     )
     if not success:
         raise HTTPException(
@@ -337,6 +348,7 @@ def place_order(order: OrderCreateRequest):
         "total_price": round(total_price, 2),
         "items": processed_items,
         "ordered_at": ordered_at,
+        "dining_option": order.dining_option or "take_away",
     }
 
     if kafka_producer:
@@ -356,6 +368,7 @@ def place_order(order: OrderCreateRequest):
     else:
         print("[API Warning] Kafka producer not initialized; order recorded in DB only.")
 
+    dining_opt = order.dining_option or "take_away"
     return {
         "order_id": order_id,
         "customer_name": order.customer_name.strip(),
@@ -367,6 +380,7 @@ def place_order(order: OrderCreateRequest):
         "price": round(total_price, 2),
         "status": "PENDING",
         "ordered_at": ordered_at,
+        "dining_option": dining_opt,
         "message": f"Order {order_id} ({len(processed_items)} items) submitted to the barista. Sit back and relax while it is prepared!",
     }
 
@@ -447,6 +461,93 @@ def return_cup(cup_code: str, customer_name: Optional[str] = None):
         "cup_code": cup_code,
         "status": "IN_DISHWASHER",
         "message": f"Cup {cup_code} returned to the dishwasher station for sanitization.",
+    }
+
+
+@app.get("/restaurant/diners", tags=["Restaurant Visualisation"])
+def get_active_diners():
+    """
+    Returns the current state of the 12-seat dining table for the 3D scene.
+    Each seat is either empty or occupied by a dine-in customer represented
+    by a randomly assigned Attack on Titan character.
+    Customers auto-leave after 45 seconds from when their order was placed.
+    """
+    return db.get_active_diners()
+
+
+@app.get("/analytics", tags=["Analytics & Logs"])
+def get_analytics(timeframe: str = Query("minutes", description="Aggregation timeframe: minutes, hours, or days")):
+    """
+    Returns aggregated metrics, timeseries breakdown, popular creations,
+    and recent cup lifecycle audit log events across minutes, hours, or days.
+    """
+    if timeframe not in ("minutes", "hours", "days"):
+        timeframe = "minutes"
+    return db.get_analytics_breakdown(timeframe)
+
+
+@app.get("/restaurant/state", tags=["Restaurant Visualisation"])
+def get_restaurant_realtime_state():
+    """
+    Returns real-time visualization state of the Attack on Titan restaurant:
+    - 12 seats on the Grand Survey Corps Mess Hall Table (6 North, 6 South)
+    - Active AoT characters, allocated cups, and current order status
+    - Barista Prep Station & Captain Levi's Cleaning & Sanitizing Bay
+    """
+    return db.get_restaurant_state()
+
+
+class SeatOrderRequest(BaseModel):
+    seat_number: int = Field(..., ge=1, le=12)
+    character_name: Optional[str] = None
+    drink_name: Optional[str] = None
+    milk: Optional[str] = "Oat Milk"
+    sweetness: Optional[str] = "50%"
+
+
+@app.post("/restaurant/order-seat", tags=["Restaurant Visualisation"])
+def order_for_seat(req: SeatOrderRequest):
+    """
+    Directly order for a specific seat / Attack on Titan character in the Mess Hall.
+    """
+    char = next((c for c in db.AOT_CHARACTERS if c["seat_number"] == req.seat_number), None)
+    char_name = req.character_name or (char["name"] if char else f"Cadet #{req.seat_number}")
+    dname = req.drink_name or (char["favorite_drink"] if char else "Strawberry Matcha Float")
+
+    order_create = OrderCreateRequest(
+        customer_name=char_name,
+        drink_name=dname,
+        drink=dname,
+        milk=req.milk,
+        sweetness=req.sweetness,
+    )
+    return place_order(order_create)
+
+
+@app.post("/restaurant/simulate-rush", tags=["Restaurant Visualisation"])
+def simulate_scout_rush():
+    """
+    Simulates a Scout Regiment mess hall rush! Places orders for 3-4 Attack on Titan characters
+    so the 12-person table fills with activity and cups circulate in real-time.
+    """
+    rush_orders = []
+    candidates = random.sample(db.AOT_CHARACTERS, k=3)
+    for char in candidates:
+        try:
+            ord_req = OrderCreateRequest(
+                customer_name=char["name"],
+                drink_name=char["favorite_drink"],
+                drink=char["favorite_drink"],
+                milk="Oat Milk",
+                sweetness="50%",
+            )
+            res = place_order(ord_req)
+            rush_orders.append(res)
+        except Exception:
+            pass
+    return {
+        "message": f"Scout Regiment meal rush triggered for {len(rush_orders)} cadets!",
+        "orders": rush_orders,
     }
 
 

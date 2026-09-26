@@ -6,7 +6,7 @@
   <title>Matcha Café Kyoto 抹茶 | Freshly Whisked Ceremonial Tea</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -159,8 +159,20 @@
     /* Main Container */
     main {
       max-width: 1200px;
-      margin: 28px auto 60px;
+      margin: 24px auto 60px;
       padding: 0 24px;
+    }
+
+    .view-panel {
+      display: none;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    .view-panel.active {
+      display: block;
+    }
+
+    #viewCafeCounter.active {
       display: grid;
       grid-template-columns: 1.55fr 1fr;
       gap: 32px;
@@ -168,7 +180,7 @@
     }
 
     @media (max-width: 900px) {
-      main {
+      #viewCafeCounter.active {
         grid-template-columns: 1fr;
         gap: 24px;
       }
@@ -859,6 +871,814 @@
       background: var(--matcha-subtle);
     }
 
+    /* Top Navigation Tabs */
+    .main-nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-cream);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      padding: 7px 16px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .nav-tab:hover {
+      color: var(--primary-dark);
+      background: rgba(46, 90, 39, 0.08);
+    }
+
+    .nav-tab.active {
+      background: var(--matcha);
+      color: white;
+      box-shadow: 0 2px 8px rgba(46, 90, 39, 0.25);
+    }
+
+    .live-dot-pulse {
+      width: 7px;
+      height: 7px;
+      background: #4ade80;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulseDot 1.6s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========================================================
+       ATTACK ON TITAN: 12-SEAT MESS HALL CHAMBER
+       ======================================================== */
+    .mess-hall-chamber {
+      background: linear-gradient(180deg, #181A1F 0%, #20242D 50%, #15171B 100%);
+      border: 2.5px solid #4A331E;
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+      color: #EDE8DE;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mess-hall-chamber::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 50% 25%, rgba(200, 160, 89, 0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .aot-banner-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1.5px solid rgba(226, 195, 123, 0.2);
+    }
+
+    .aot-title-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .aot-insignia {
+      width: 48px;
+      height: 48px;
+      background: #1C3D2E;
+      border: 2px solid #C5A059;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .aot-main-title {
+      font-family: 'Cinzel', Georgia, serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.06em;
+      color: #F4D06F;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    }
+
+    .aot-sub-title {
+      font-size: 0.8rem;
+      color: #B8B0A2;
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+
+    .aot-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .aot-btn {
+      background: linear-gradient(135deg, #2D6A4F, #1B4332);
+      border: 1px solid #C5A059;
+      color: #FFF;
+      padding: 9px 18px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .aot-btn:hover {
+      background: linear-gradient(135deg, #388261, #245741);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .aot-btn.btn-rush {
+      background: linear-gradient(135deg, #9B2226, #671417);
+      border-color: #E2C37B;
+    }
+
+    .aot-btn.btn-rush:hover {
+      background: linear-gradient(135deg, #AE2012, #7D181B);
+    }
+
+    .seats-row {
+      margin-bottom: 16px;
+    }
+
+    .seats-row.south-row {
+      margin-top: 16px;
+      margin-bottom: 26px;
+    }
+
+    .seats-row-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #C5A059;
+      margin-bottom: 10px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .seats-row-label::before, .seats-row-label::after {
+      content: "";
+      width: 60px;
+      height: 1px;
+      background: rgba(197, 160, 89, 0.35);
+    }
+
+    .seats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 992px) {
+      .seats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .seats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .seat-card {
+      background: rgba(28, 32, 40, 0.9);
+      border: 1.5px solid rgba(197, 160, 89, 0.3);
+      border-radius: var(--radius-md);
+      padding: 12px 10px;
+      text-align: center;
+      transition: all 0.25s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .seat-card:hover {
+      border-color: #F4D06F;
+      transform: translateY(-3px);
+      background: rgba(38, 44, 56, 0.95);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .seat-card.active-drinker {
+      border-color: #4ade80;
+      box-shadow: 0 0 16px rgba(74, 222, 128, 0.25);
+    }
+
+    .seat-card.active-preparing {
+      border-color: #f59e0b;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.28);
+    }
+
+    .seat-avatar-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2.5px solid #C5A059;
+      overflow: hidden;
+      margin-bottom: 8px;
+      position: relative;
+      background: #111;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .seat-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .seat-num-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      background: #C5A059;
+      color: #111;
+      font-size: 0.65rem;
+      font-weight: 800;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .seat-char-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #FBF8F1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .seat-char-title {
+      font-size: 0.68rem;
+      color: #C0B7A8;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .seat-status-pill {
+      margin-top: 8px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.68rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #A0AAB2;
+    }
+
+    .seat-status-pill.status-drinking {
+      background: rgba(46, 125, 50, 0.35);
+      color: #86EFAC;
+      border: 1px solid rgba(134, 239, 172, 0.3);
+    }
+
+    .seat-status-pill.status-preparing {
+      background: rgba(245, 158, 11, 0.3);
+      color: #FCD34D;
+      border: 1px solid rgba(252, 211, 77, 0.3);
+    }
+
+    .seat-cup-indicator {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: #F4D06F;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .seat-action-btn {
+      margin-top: 8px;
+      padding: 3px 10px;
+      background: rgba(197, 160, 89, 0.15);
+      border: 1px solid #C5A059;
+      color: #F4D06F;
+      font-size: 0.68rem;
+      font-weight: 700;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .seat-action-btn:hover {
+      background: #C5A059;
+      color: #111;
+    }
+
+    /* The Grand Dining Table */
+    .grand-table {
+      background: linear-gradient(180deg, #442916 0%, #321D0E 50%, #221308 100%);
+      border: 3.5px solid #6E4627;
+      border-radius: 14px;
+      padding: 22px 20px;
+      position: relative;
+      box-shadow: inset 0 2px 14px rgba(255, 255, 255, 0.12), 0 14px 36px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+
+    .table-emblem-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .wings-svg {
+      width: 48px;
+      height: 58px;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+    }
+
+    .table-title {
+      font-family: 'Cinzel', serif;
+      font-size: 0.76rem;
+      letter-spacing: 0.22em;
+      color: #E2C37B;
+      text-transform: uppercase;
+      margin-top: 8px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+    }
+
+    .table-cups-row {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed rgba(197, 160, 89, 0.35);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .table-cup-slot {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(197, 160, 89, 0.35);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      color: #E2C37B;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .table-cup-slot.active-cup {
+      background: rgba(46, 90, 39, 0.55);
+      border-color: #4ade80;
+      color: #FFF;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
+    }
+
+    .steam-anim {
+      display: inline-block;
+      animation: steamWaft 2s infinite ease-in-out;
+    }
+
+    @keyframes steamWaft {
+      0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
+      50% { transform: translateY(-4px) scale(1.2); opacity: 1; }
+    }
+
+    .stations-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .stations-grid { grid-template-columns: 1fr; }
+    }
+
+    .station-card {
+      background: rgba(22, 26, 34, 0.92);
+      border: 1.5px solid rgba(197, 160, 89, 0.25);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .station-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .station-badge {
+      background: #1C3D2E;
+      color: #A3E635;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid #A3E635;
+    }
+
+    .station-badge.cleaning-badge {
+      background: #1E3A5F;
+      color: #93C5FD;
+      border-color: #60A5FA;
+    }
+
+    .cup-tags-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .cup-chip-mini {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      color: #E2C37B;
+    }
+
+    /* Dialogue Quote Toast */
+    .quote-toast {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #181A1F;
+      border: 2px solid #C5A059;
+      color: #FBF8F1;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      z-index: 100;
+      max-width: 360px;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    /* ========================================================
+       LOG ANALYTICS & TIME MACHINE STYLES
+       ======================================================== */
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .analytics-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .analytics-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .timeframe-pills {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-cream);
+      border: 1.5px solid var(--border);
+      padding: 4px;
+      border-radius: var(--radius-full);
+    }
+
+    .timeframe-btn {
+      background: none;
+      border: none;
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .timeframe-btn.active {
+      background: var(--primary-dark);
+      color: white;
+      box-shadow: 0 2px 8px rgba(30, 63, 32, 0.2);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 992px) {
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .kpi-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 14px;
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+
+    .kpi-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .kpi-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin: 6px 0 2px;
+    }
+
+    .kpi-sub {
+      font-size: 0.72rem;
+      color: var(--text-light);
+    }
+
+    .analytics-columns {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .analytics-columns { grid-template-columns: 1fr; }
+    }
+
+    .analytics-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .badge-time {
+      background: var(--matcha-froth);
+      color: var(--matcha);
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Interactive CSS Chart */
+    .chart-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 200px;
+      padding: 30px 6px 8px 6px;
+      border-bottom: 2px solid var(--border);
+      position: relative;
+      background: linear-gradient(to bottom, 
+        transparent 0%, 
+        transparent calc(25% - 1px), rgba(0,0,0,0.03) 25%, transparent calc(25% + 1px),
+        transparent calc(50% - 1px), rgba(0,0,0,0.03) 50%, transparent calc(50% + 1px),
+        transparent calc(75% - 1px), rgba(0,0,0,0.03) 75%, transparent calc(75% + 1px)
+      );
+      overflow-x: hidden;
+      overflow-y: hidden;
+    }
+
+    .chart-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1 1 0;
+      min-width: 0;
+      height: 100%;
+      justify-content: flex-end;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .chart-pill {
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #2E5A27;
+      background: #EBF3E8;
+      border: 1px solid #C5E1A5;
+      border-radius: 8px;
+      padding: 1px 4px;
+      margin-bottom: 4px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      max-width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .chart-pill-empty {
+      font-size: 0.75rem;
+      color: #C0C8BF;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+
+    .chart-bar {
+      width: 100%;
+      max-width: 28px;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s, transform 0.2s;
+      position: relative;
+    }
+
+    .chart-bar.has-orders {
+      background: linear-gradient(180deg, #6B9B5C 0%, #2E5A27 100%);
+      box-shadow: 0 2px 6px rgba(46, 90, 39, 0.2);
+    }
+
+    .chart-bar.no-orders {
+      background: #DCE3DB;
+      height: 4px !important;
+      border-radius: 2px;
+    }
+
+    .chart-bar-wrap:hover .chart-bar.has-orders {
+      background: linear-gradient(180deg, #81B96F 0%, #1E3F20 100%);
+      box-shadow: 0 4px 12px rgba(46, 90, 39, 0.35);
+      transform: scaleY(1.03);
+      transform-origin: bottom;
+    }
+
+    .chart-bar-wrap:hover .chart-pill {
+      background: #2E5A27;
+      color: #FFFFFF;
+      transform: translateY(-2px);
+    }
+
+    .chart-bar-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 6px;
+      white-space: nowrap;
+      text-align: center;
+      width: 100%;
+    }
+
+    .chart-floating-tooltip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 99999;
+      background: rgba(20, 32, 22, 0.96);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(129, 185, 111, 0.4);
+      color: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: opacity 0.12s ease-out;
+      display: none;
+      opacity: 0;
+      line-height: 1.45;
+    }
+
+    .audit-table-wrapper {
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    .audit-table th {
+      background: #FAFBF9;
+      padding: 10px 14px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .audit-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #EDF2EB;
+      color: var(--text-main);
+    }
+
+    .status-pill-mini {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .status-pill-mini.clean { background: #EBF3E8; color: #2E5A27; }
+    .status-pill-mini.brewing { background: #FEF3C7; color: #92400E; }
+    .status-pill-mini.customer { background: #E0E7FF; color: #3730A3; }
+    .status-pill-mini.dishwasher { background: #FCE7F3; color: #9D174D; }
+
+    .customer-leaderboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .customer-leaderboard-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .customer-leaderboard-grid { grid-template-columns: 1fr; }
+    }
+
+    .leaderboard-item {
+      background: #FAFBF9;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+
     /* Footer */
     footer {
       border-top: 1px solid var(--border);
@@ -867,6 +1687,475 @@
       font-size: 0.82rem;
       color: var(--text-light);
     }
+
+    /* 2D Attack on Titan Dining Hall Styles */
+    .mess-hall-chamber-clean {
+      background: #171b21;
+      border: 1.5px solid #3c2a1c;
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      color: #EDE8DE;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .hall-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(197, 160, 89, 0.25);
+      margin-bottom: 20px;
+    }
+
+    .hall-crest-icon {
+      font-size: 26px;
+      background: #242b35;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid #C5A059;
+    }
+
+    .hall-title {
+      font-family: 'Cinzel', Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #F4D06F;
+      margin: 0;
+    }
+
+    .hall-subtitle {
+      font-size: 0.76rem;
+      color: #A0AAB5;
+      margin-top: 2px;
+    }
+
+    .hall-status-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hall-occupancy-pill {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      background: rgba(46, 90, 39, 0.35);
+      color: #A3E635;
+      border: 1px solid rgba(163, 230, 53, 0.4);
+    }
+
+    .btn-refresh-hall {
+      background: #232a34;
+      border: 1px solid #4a5568;
+      color: #EDE8DE;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-refresh-hall:hover {
+      background: #2e3744;
+    }
+
+    /* Dining Table Scene */
+    .dining-table-scene {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin: 0 auto;
+      max-width: 1060px;
+    }
+
+    /* 6-column grid for chairs (Zero overlap between adjacent seats) */
+    .chairs-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      width: 100%;
+      align-items: end;
+    }
+
+    .south-chairs-row {
+      align-items: start;
+    }
+
+    .seat-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+      gap: 6px;
+    }
+
+    /* Seat Dialogue / Info Bubble */
+    .seat-bubble-card {
+      width: 100%;
+      box-sizing: border-box;
+      background: #FFFFFF;
+      color: #1A241C;
+      border-radius: 9px;
+      padding: 7px 5px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      border: 1px solid #D1D5DB;
+      position: relative;
+    }
+
+    .bubble-cust-name {
+      font-weight: 700;
+      font-size: 0.74rem;
+      color: #1E3F20;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
+    .bubble-item {
+      font-size: 0.65rem;
+      color: #4B5563;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
+    .bubble-action {
+      font-size: 0.62rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 2px 5px;
+      margin-top: 3px;
+      display: inline-block;
+      line-height: 1.2;
+    }
+
+    .bubble-action.ready { background: #D1FAE5; color: #065F46; }
+    .bubble-action.preparing { background: #DBEAFE; color: #1E40AF; }
+    .bubble-action.pending { background: #FEF3C7; color: #92400E; }
+
+    .bubble-timer {
+      font-size: 0.62rem;
+      color: #6B7280;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .bubble-arrow-down {
+      width: 0; height: 0;
+      margin: 0 auto;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #FFFFFF;
+      position: absolute;
+      bottom: -5px;
+      left: calc(50% - 5px);
+    }
+
+    .bubble-arrow-up {
+      width: 0; height: 0;
+      margin: 0 auto;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 5px solid #FFFFFF;
+      position: absolute;
+      top: -5px;
+      left: calc(50% - 5px);
+    }
+
+    .seat-bubble-empty {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(30, 36, 44, 0.45);
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 6px 4px;
+      text-align: center;
+      color: #8C96A0;
+      font-size: 0.66rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    /* Chair Graphics */
+    .chair-graphic {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .empty-chair {
+      background: #231810;
+      border: 2px solid #54331d;
+      border-radius: 12px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    .chair-backrest {
+      width: 38px;
+      height: 10px;
+      background: #54331d;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+
+    .chair-seat-cushion {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #B8966E;
+    }
+
+    .chair-avatar-img {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      border: 2.5px solid #C5A059;
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      background: #1C232B;
+    }
+
+    .chair-seat-number {
+      position: absolute;
+      bottom: -4px;
+      right: -2px;
+      background: #C5A059;
+      color: #1C150A;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 10px;
+      border: 1px solid #FFFFFF;
+    }
+
+    /* Central Grand Dining Table */
+    .central-grand-table {
+      background: linear-gradient(180deg, #442918 0%, #2b170c 100%);
+      border: 3px solid #6b4324;
+      border-radius: 14px;
+      padding: 12px 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .table-crest-badge {
+      text-align: center;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed rgba(197, 160, 89, 0.35);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .crest-text {
+      font-family: 'Cinzel', Georgia, serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #E2C37B;
+    }
+
+    .table-placemats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+
+    .table-placemat {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+    }
+
+    .wood-coaster {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(197, 160, 89, 0.4);
+      background: rgba(0,0,0,0.25);
+    }
+
+    .steaming-cup, .artisan-plate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(197, 160, 89, 0.5);
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .item-emoji {
+      font-size: 18px;
+    }
+
+    .steam-float {
+      position: absolute;
+      top: -6px;
+      right: 4px;
+      font-size: 10px;
+      color: #A3E635;
+      animation: steamAnim 1.8s infinite ease-in-out;
+    }
+
+    @keyframes steamAnim {
+      0% { transform: translateY(0); opacity: 0.3; }
+      50% { transform: translateY(-3px); opacity: 1; }
+      100% { transform: translateY(-6px); opacity: 0; }
+    }
+
+    /* Waiter Bar Station (Roomy, perfectly readable, no text cutoff!) */
+    .waiter-bar-station {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: #11151a;
+      border: 1.5px solid #3c2a1c;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-top: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .waiter-avatar-box {
+      width: 68px;
+      height: 68px;
+      flex-shrink: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .waiter-avatar-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2.5px solid #2E5A27;
+      object-fit: cover;
+      background: #1C232B;
+    }
+
+    .waiter-badge {
+      background: #2E5A27;
+      color: #FFFFFF;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+      margin-top: -6px;
+      white-space: nowrap;
+    }
+
+    .waiter-speech-bubble {
+      flex: 1;
+      min-width: 0;
+      background: rgba(30, 44, 32, 0.85);
+      border: 1.5px solid #C5A059;
+      border-radius: 12px;
+      padding: 12px 18px;
+      line-height: 1.45;
+    }
+
+    .waiter-bubble-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .waiter-name {
+      color: #F4D06F;
+      font-size: 0.92rem;
+    }
+
+    .waiter-role-tag {
+      font-size: 0.70rem;
+      color: #93C5FD;
+      background: rgba(147, 197, 253, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .waiter-clean-tag {
+      font-size: 0.70rem;
+      color: #A3E635;
+      background: rgba(163, 230, 53, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .waiter-quote {
+      color: #EDE8DE;
+      font-size: 0.82rem;
+      margin: 4px 0 8px;
+      word-wrap: break-word;
+      line-height: 1.45;
+    }
+
+    .waiter-station-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.72rem;
+      color: #A0AAB5;
+      padding-top: 6px;
+      border-top: 1px solid rgba(197, 160, 89, 0.2);
+    }
+
+    /* Dine-in / Take-away toggle */
+    .dining-toggle {
+      display: flex;
+      gap: 0;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .dining-toggle button {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: var(--bg-cream);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .dining-toggle button.active {
+      background: var(--matcha);
+      color: white;
+    }
+
+    .dining-toggle button:first-child { border-right: 1px solid var(--border); }
   </style>
 </head>
 <body>
@@ -882,13 +2171,27 @@
         </div>
       </a>
 
+      <!-- Navigation Tabs -->
+      <nav class="main-nav-tabs">
+        <button class="nav-tab active" id="tabBtnCounter" onclick="switchView('counter')">
+          <span>🍵 Café Ordering</span>
+        </button>
+        <button class="nav-tab" id="tabBtnMessHall" onclick="switchView('messhall')">
+          <span>⚔️ Scout Mess Hall (12 Seats)</span>
+          <span class="live-dot-pulse"></span>
+        </button>
+        <button class="nav-tab" id="tabBtnAnalytics" onclick="switchView('analytics')">
+          <span>📊 Log Analytics</span>
+        </button>
+      </nav>
+
       <div class="nav-stats">
         <div class="badge-barista">
           <div class="pulse-dot"></div>
           <span>Kaito on Duty</span>
         </div>
         
-        <div class="order-tray-badge" id="headerTrayBadge">
+        <div class="order-tray-badge" id="headerTrayBadge" onclick="switchView('counter')">
           <span>🛒</span>
           <span id="headerTrayText">Tray: Empty</span>
         </div>
@@ -896,10 +2199,12 @@
     </div>
   </header>
 
-  <!-- Main Order Experience -->
+  <!-- Main Experience -->
   <main>
-    <!-- Left Column: Menu & Customization -->
-    <section>
+    <!-- View 1: Customer Ordering Interface -->
+    <div id="viewCafeCounter" class="view-panel active">
+      <!-- Left Column: Menu & Customization -->
+      <section>
       <div class="card">
         <!-- 1. Customer Selection (Required) -->
         <div class="customer-input-group">
@@ -1012,9 +2317,25 @@
             <span id="summaryTotal">$0.00</span>
           </div>
 
-          <div style="margin: 14px 0 18px; padding: 10px 14px; background: #FAFBF9; border: 1px solid #E5EBE1; border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+          <div style="margin: 14px 0 14px; padding: 10px 14px; background: #FAFBF9; border: 1px solid #E5EBE1; border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
             <span>🍵</span>
             <span>Served in artisanal handcrafted ceramics & Mino-ware plates.</span>
+          </div>
+
+          <!-- Dining Experience Selection: Dine-in vs Take Away -->
+          <div style="margin-bottom: 16px;">
+            <label class="input-label" style="margin-bottom: 6px;">Dining Experience</label>
+            <div class="dining-toggle" id="diningToggle">
+              <button type="button" class="active" id="btnDineIn" onclick="selectDiningOption('dine_in')">
+                🍽️ Dine-in (12 Seats)
+              </button>
+              <button type="button" id="btnTakeAway" onclick="selectDiningOption('take_away')">
+                🛍️ Take Away (To-Go)
+              </button>
+            </div>
+            <p id="diningOptionNote" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">
+              ✨ Dine-in guests take a seat at the Scout Mess Hall table.
+            </p>
           </div>
 
           <button class="btn-whisk" id="submitOrderBtn" onclick="submitOrder()" disabled>
@@ -1073,6 +2394,220 @@
         </div>
       </div>
     </aside>
+    </div>
+
+    <!-- View 2: Scout Mess Hall (Attack on Titan 2D Dining Visualization) -->
+    <div id="viewMessHall" class="view-panel">
+      <div class="mess-hall-chamber-clean">
+        <!-- Top Banner -->
+        <div class="hall-header-bar">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="hall-crest-icon">⚔️</div>
+            <div>
+              <h2 class="hall-title">Wall Rose Scout Mess Hall • Grand Dining Table</h2>
+              <p class="hall-subtitle">12-Seat Live Dining Visualization • Dine-in guests take a seat as an AoT Scout (45s stay)</p>
+            </div>
+          </div>
+          <div class="hall-status-group">
+            <span class="hall-occupancy-pill" id="messHallOccupancy">0 / 12 Seats Occupied</span>
+            <button class="btn-refresh-hall" onclick="pollActiveDiners()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <!-- Dining Room Scene Container -->
+        <div class="dining-table-scene">
+          <!-- North Row: Chairs 1 - 6 -->
+          <div class="chairs-row north-chairs-row" id="northSeatsContainer">
+            <!-- Populated dynamically: 6 distinct non-overlapping columns -->
+          </div>
+
+          <!-- Central Grand Dining Table -->
+          <div class="central-grand-table">
+            <div class="table-crest-badge">
+              <span class="crest-wings">🛡️ ⚔️ 🛡️</span>
+              <span class="crest-text">THE GRAND SURVEY CORPS MESS TABLE • 12 DINING PLACES</span>
+              <span class="crest-wings">🛡️ ⚔️ 🛡️</span>
+            </div>
+            <!-- Table Placemats (Coasters & Cups / Plates) -->
+            <div class="table-placemats-grid" id="tablePlacematsGrid">
+              <!-- 12 placemats corresponding to seats 1..12 -->
+            </div>
+          </div>
+
+          <!-- South Row: Chairs 7 - 12 -->
+          <div class="chairs-row south-chairs-row" id="southSeatsContainer">
+            <!-- Populated dynamically: 6 distinct non-overlapping columns -->
+          </div>
+        </div>
+
+        <!-- Garrison Barista & Waiter Counter (Spacious, fully readable, zero text cutoff!) -->
+        <div class="waiter-bar-station">
+          <div class="waiter-avatar-box">
+            <img src="/images/characters/levi.webp" alt="Captain Levi" class="waiter-avatar-img" onerror="this.src='/images/characters/eren.webp';" />
+            <span class="waiter-badge">Head Waiter</span>
+          </div>
+          <div class="waiter-speech-bubble">
+            <div class="waiter-bubble-header">
+              <strong class="waiter-name">⚔️ Captain Levi</strong>
+              <span class="waiter-role-tag">Garrison Barista Station</span>
+              <span class="waiter-clean-tag">✨ 100% Spotless Inspection</span>
+            </div>
+            <p class="waiter-quote" id="waiterQuoteText">
+              "Welcome to Wall Rose Mess Hall. Keep this place spotless. Fresh ceremonial matcha is hand-whisked and artisan plates are served directly to your table."
+            </p>
+            <div class="waiter-station-meta">
+              <span class="meta-item" id="metaCupsCirculation">🍵 <strong>Ceramic Cups:</strong> 0 in circulation (12 clean on shelf)</span>
+              <span class="meta-item">⏱️ <strong>Table Limit:</strong> 45s Dine-In Stay</span>
+              <span class="meta-item" id="waiterActiveDuty">⚡ <strong>Status:</strong> Ready for service</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View 3: Log Analytics Dashboard (Minutes / Hours / Days breakdown) -->
+    <div id="viewAnalytics" class="view-panel">
+      <!-- Analytics Header with Timeframe Switcher -->
+      <div class="analytics-header">
+        <div>
+          <h2 class="analytics-title">Matcha PubSub System Log & Event Analytics</h2>
+          <p class="analytics-subtitle" id="analyticsSubtitle">
+            Aggregated audit events, cup lifecycle telemetry & consumer throughput across timeframes
+          </p>
+        </div>
+
+        <!-- Minutes, Hours, Days Switcher -->
+        <div class="timeframe-pills">
+          <button class="timeframe-btn active" id="btnTfMinutes" onclick="loadAnalytics('minutes')">
+            ⏱️ Past Minutes (60m)
+          </button>
+          <button class="timeframe-btn" id="btnTfHours" onclick="loadAnalytics('hours')">
+            🕒 Past Hours (24h)
+          </button>
+          <button class="timeframe-btn" id="btnTfDays" onclick="loadAnalytics('days')">
+            📅 Past Days (7d)
+          </button>
+        </div>
+      </div>
+
+      <!-- 6 KPI Stat Summary Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Orders</div>
+          <div class="kpi-value" id="kpiTotalOrders">0</div>
+          <div class="kpi-sub" id="kpiOrdersSub">Completed & active</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value" id="kpiTotalRevenue">$0.00</div>
+          <div class="kpi-sub">Gross sales</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Prep Duration</div>
+          <div class="kpi-value" id="kpiAvgPrep">0.0s</div>
+          <div class="kpi-sub">Barista fulfillment</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Orders</div>
+          <div class="kpi-value" id="kpiActiveOrders">0</div>
+          <div class="kpi-sub">In queue or brewing</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cups in Circulation</div>
+          <div class="kpi-value" id="kpiCirculationCups">0 / 12</div>
+          <div class="kpi-sub">With guests or brewing</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Sanitized on Shelf</div>
+          <div class="kpi-value" id="kpiCleanCups">12 / 12</div>
+          <div class="kpi-sub">Ready for service</div>
+        </div>
+      </div>
+
+      <!-- 2-Column Analytics Breakdown -->
+      <div class="analytics-columns">
+        <!-- Left Column: Timeseries Chart & Audit Log Event Stream -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Chart Card -->
+          <div class="analytics-card">
+            <div class="card-header-flex">
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark);">
+                  📈 Order Volume & Throughput
+                </h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;" id="chartTimeLabel">
+                  Timeseries breakdown
+                </p>
+              </div>
+              <span class="badge-time" id="chartTimeBadge">Live aggregation</span>
+            </div>
+
+            <!-- CSS Bar Chart Container -->
+            <div class="chart-container" id="timeseriesChart">
+              <!-- Dynamically populated bars -->
+            </div>
+          </div>
+
+          <!-- Cup Lifecycle Audit Log Stream Table -->
+          <div class="analytics-card">
+            <div class="card-header-flex">
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark);">
+                  📋 Cup Lifecycle Audit Events & Telemetry
+                </h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                  Real-time transition logs recorded in PostgreSQL from Kafka event topics
+                </p>
+              </div>
+              <input type="text" id="auditSearchInput" placeholder="Filter by cup, status or event..." 
+                     style="padding: 6px 12px; font-size: 0.78rem; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; width: 220px;"
+                     oninput="filterAuditLogs()" />
+            </div>
+
+            <div class="audit-table-wrapper">
+              <table class="audit-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Cup</th>
+                    <th>Previous Status</th>
+                    <th>New Status</th>
+                    <th>Trigger Event</th>
+                    <th>Order Ref</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <!-- Dynamically populated rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Top Creations & Customer Leaderboard -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Top Popular Creations -->
+          <div class="analytics-card">
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 12px;">
+              🍵 Popular Matcha Creations
+            </h3>
+            <div id="popularItemsList" style="display: flex; flex-direction: column; gap: 10px;">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Top Customers Leaderboard -->
+          <div class="analytics-card">
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 12px;">
+              👑 Customer Loyalty Leaderboard
+            </h3>
+            <div id="customerLeaderboardList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <footer>
@@ -1109,6 +2644,17 @@
           }
         });
       }
+
+      window.addEventListener("resize", () => {
+        const container = document.getElementById("threeDContainer");
+        if (container && threeCamera && threeRenderer) {
+          const width = container.clientWidth || 900;
+          const height = container.clientHeight || 520;
+          threeCamera.aspect = width / height;
+          threeCamera.updateProjectionMatrix();
+          threeRenderer.setSize(width, height);
+        }
+      });
     });
 
     async function fetchMenu() {
@@ -1408,6 +2954,23 @@
       `).join('');
     }
 
+    // Dining Experience: dine_in vs take_away
+    let selectedDiningOption = "dine_in";
+
+    function selectDiningOption(opt) {
+      selectedDiningOption = opt;
+      const btnIn = document.getElementById("btnDineIn");
+      const btnOut = document.getElementById("btnTakeAway");
+      const note = document.getElementById("diningOptionNote");
+      if (btnIn) btnIn.classList.toggle("active", opt === "dine_in");
+      if (btnOut) btnOut.classList.toggle("active", opt === "take_away");
+      if (note) {
+        note.innerText = opt === "dine_in"
+          ? "✨ Dine-in guests take a seat at the Scout Mess Hall table."
+          : "🛍️ Take-away orders are boxed and picked up directly at the counter.";
+      }
+    }
+
     // Submit Order
     async function submitOrder() {
       if (tray.length === 0) return;
@@ -1432,6 +2995,7 @@
       try {
         const payload = {
           customer_name: customer,
+          dining_option: selectedDiningOption,
           items: tray.map(item => ({
             drink_name: item.drink_name,
             milk: item.milk,
@@ -1639,6 +3203,586 @@
         document.getElementById("summaryCustomer").innerText = "—";
       }
     }
+
+    /* ========================================================
+       ATTACK ON TITAN & ANALYTICS CLIENT-SIDE INTERACTIVITY
+       ======================================================== */
+    let currentView = "counter";
+    let messHallPollInterval = null;
+    let analyticsPollInterval = null;
+    let currentAnalyticsTimeframe = "minutes";
+    let rawAuditEvents = [];
+    let quoteToastTimer = null;
+
+    function switchView(viewName) {
+      currentView = viewName;
+
+      // Update Navigation Tabs
+      const tabCounter = document.getElementById("tabBtnCounter");
+      const tabMessHall = document.getElementById("tabBtnMessHall");
+      const tabAnalytics = document.getElementById("tabBtnAnalytics");
+
+      if (tabCounter) tabCounter.classList.toggle("active", viewName === "counter");
+      if (tabMessHall) tabMessHall.classList.toggle("active", viewName === "messhall");
+      if (tabAnalytics) tabAnalytics.classList.toggle("active", viewName === "analytics");
+
+      // Update View Panels
+      const viewCounter = document.getElementById("viewCafeCounter");
+      const viewMess = document.getElementById("viewMessHall");
+      const viewAna = document.getElementById("viewAnalytics");
+
+      if (viewCounter) viewCounter.classList.toggle("active", viewName === "counter");
+      if (viewMess) viewMess.classList.toggle("active", viewName === "messhall");
+      if (viewAna) viewAna.classList.toggle("active", viewName === "analytics");
+
+      // Polling Lifecycle Management
+      if (viewName === "messhall") {
+        pollActiveDiners();
+        if (!dinersPollInterval) {
+          dinersPollInterval = setInterval(pollActiveDiners, 1500);
+        }
+        if (analyticsPollInterval) {
+          clearInterval(analyticsPollInterval);
+          analyticsPollInterval = null;
+        }
+      } else if (viewName === "analytics") {
+        loadAnalytics(currentAnalyticsTimeframe);
+        if (!analyticsPollInterval) {
+          analyticsPollInterval = setInterval(() => loadAnalytics(currentAnalyticsTimeframe), 4000);
+        }
+        if (dinersPollInterval) {
+          clearInterval(dinersPollInterval);
+          dinersPollInterval = null;
+        }
+      } else {
+        if (dinersPollInterval) {
+          clearInterval(dinersPollInterval);
+          dinersPollInterval = null;
+        }
+        if (analyticsPollInterval) {
+          clearInterval(analyticsPollInterval);
+          analyticsPollInterval = null;
+        }
+      }
+    }
+
+    /* ========================================================
+       2D ATTACK ON TITAN MESS HALL (12-SEAT DINING VISUALIZATION)
+       ======================================================== */
+    let dinersPollInterval = null;
+
+    async function pollActiveDiners() {
+      try {
+        const res = await fetch("/restaurant/diners");
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update occupancy badge
+        const occEl = document.getElementById("messHallOccupancy");
+        if (occEl) {
+          occEl.innerText = `${data.occupied_count} / ${data.total_seats} Seats Occupied`;
+        }
+
+        // Update live cup circulation
+        if (data.cups) {
+          const metaCups = document.getElementById("metaCupsCirculation");
+          if (metaCups) {
+            metaCups.innerHTML = `🍵 <strong>Ceramic Cups:</strong> ${data.cups.in_circulation} in circulation (${data.cups.clean_on_shelf} clean on shelf)`;
+          }
+        }
+
+        render2DSeats(data.seats || []);
+        render2DPlacemats(data.seats || []);
+      } catch (err) {
+        console.error("Diners polling error:", err);
+      }
+    }
+
+    function render2DSeats(seats) {
+      const northContainer = document.getElementById("northSeatsContainer");
+      const southContainer = document.getElementById("southSeatsContainer");
+      if (!northContainer || !southContainer) return;
+
+      const seatMap = {};
+      seats.forEach(s => { seatMap[s.seat_number] = s; });
+
+      // Render North Seats (1 to 6)
+      let northHtml = "";
+      for (let s = 1; s <= 6; s++) {
+        northHtml += buildSeatHtml(seatMap[s] || { seat_number: s, occupied: false }, "north");
+      }
+      northContainer.innerHTML = northHtml;
+
+      // Render South Seats (7 to 12)
+      let southHtml = "";
+      for (let s = 7; s <= 12; s++) {
+        southHtml += buildSeatHtml(seatMap[s] || { seat_number: s, occupied: false }, "south");
+      }
+      southContainer.innerHTML = southHtml;
+    }
+
+    function buildSeatHtml(seat, side) {
+      const sNum = seat.seat_number;
+      const isOcc = seat.occupied;
+
+      if (!isOcc) {
+        // Empty Chair
+        const bubbleHtml = `
+          <div class="seat-bubble-empty">
+            <span>🪑 Empty Seat</span>
+          </div>
+        `;
+        const chairHtml = `
+          <div class="chair-graphic empty-chair" title="Chair #${sNum} (Available)">
+            <div class="chair-backrest"></div>
+            <div class="chair-seat-cushion">#${sNum}</div>
+          </div>
+        `;
+        return `
+          <div class="seat-col" id="seatCol_${sNum}">
+            ${side === "north" ? bubbleHtml + chairHtml : chairHtml + bubbleHtml}
+          </div>
+        `;
+      }
+
+      // Occupied Seat
+      const statusBadge = seat.status_badge || "ready";
+      const actionLabel = seat.action_label || (seat.is_dessert ? "Savoring Dessert 🍰" : "Sipping Matcha 🍵");
+      const timerText = seat.seconds_remaining > 0 ? `${seat.seconds_remaining}s left` : "Leaving...";
+
+      // User requirement: "You Also don't need to include the AoT character's names in the text bubble"
+      // Shows: Customer name, drink/dessert name, dynamic action label, countdown timer
+      const bubbleHtml = `
+        <div class="seat-bubble-card">
+          <div class="bubble-cust-name">${escapeHtml(seat.customer_name)}</div>
+          <div class="bubble-item" title="${escapeHtml(seat.drink_name)}">${escapeHtml(seat.drink_name)}</div>
+          <div><span class="bubble-action ${statusBadge}">${actionLabel}</span></div>
+          <div class="bubble-timer">⏱️ ${timerText}</div>
+          <div class="${side === "north" ? "bubble-arrow-down" : "bubble-arrow-up"}"></div>
+        </div>
+      `;
+
+      const avatarImg = seat.image || `/images/characters/${seat.character_id}.webp`;
+      const chairHtml = `
+        <div class="chair-graphic occupied-chair" title="${escapeHtml(seat.customer_name)} (Seat #${sNum})">
+          <img src="${avatarImg}" class="chair-avatar-img" alt="Scout Patron" onerror="this.onerror=null;this.src='/images/characters/eren.webp';" />
+          <div class="chair-seat-number">#${sNum}</div>
+        </div>
+      `;
+
+      return `
+        <div class="seat-col occupied" id="seatCol_${sNum}">
+          ${side === "north" ? bubbleHtml + chairHtml : chairHtml + bubbleHtml}
+        </div>
+      `;
+    }
+
+    function render2DPlacemats(seats) {
+      const container = document.getElementById("tablePlacematsGrid");
+      if (!container) return;
+
+      const seatMap = {};
+      seats.forEach(s => { seatMap[s.seat_number] = s; });
+
+      let html = "";
+      for (let s = 1; s <= 12; s++) {
+        const seat = seatMap[s] || { seat_number: s, occupied: false };
+        if (!seat.occupied) {
+          html += `
+            <div class="table-placemat empty-placemat" title="Seat #${s} Setting">
+              <div class="wood-coaster"></div>
+            </div>
+          `;
+        } else {
+          const itemIcon = seat.is_dessert ? "🍰" : "🍵";
+          const itemClass = seat.is_dessert ? "artisan-plate" : "steaming-cup";
+          html += `
+            <div class="table-placemat active-placemat" title="Seat #${s}: ${escapeHtml(seat.drink_name)}">
+              <div class="${itemClass}">
+                <span class="item-emoji">${itemIcon}</span>
+                ${!seat.is_dessert ? '<span class="steam-float">~</span>' : ''}
+              </div>
+            </div>
+          `;
+        }
+      }
+      container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    async function orderForSeat(seatNumber, charName, drinkName) {
+      try {
+        const res = await fetch("/restaurant/order-seat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seat_number: seatNumber, character_name: charName, drink_name: drinkName })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showQuoteToast(
+            charName,
+            "Matcha Order Dispatched!",
+            `“Ceremonial ${drinkName} ordered for Seat #${seatNumber}! Whisking now at the counter.”`,
+            `/images/characters/${charName.toLowerCase().split(" ")[0]}.webp`
+          );
+          loadRestaurantState();
+        } else {
+          alert(data.detail || "Could not place order for seat");
+        }
+      } catch (err) {
+        console.error("Seat order failed:", err);
+      }
+    }
+
+    async function triggerScoutRush() {
+      try {
+        const res = await fetch("/restaurant/simulate-rush", { method: "POST" });
+        const data = await res.json();
+        showQuoteToast(
+          "Erwin Smith",
+          "Commander of Survey Corps",
+          "“Dedicate your hearts! The Scout Regiment meal rush has begun — keep the ceremonial matcha flowing!”",
+          "/images/characters/erwin.webp"
+        );
+        loadRestaurantState();
+      } catch (err) {
+        console.error("Rush failed:", err);
+      }
+    }
+
+    function showQuoteToast(name, title, quote, avatar) {
+      const toast = document.getElementById("quoteToast");
+      if (!toast) return;
+
+      const img = document.getElementById("quoteToastImg");
+      if (img) {
+        img.src = avatar;
+        img.onerror = () => { img.src = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>"; };
+      }
+
+      const nameEl = document.getElementById("quoteToastName");
+      if (nameEl) nameEl.innerText = name;
+
+      const titleEl = document.getElementById("quoteToastTitle");
+      if (titleEl) titleEl.innerText = title;
+
+      const textEl = document.getElementById("quoteToastText");
+      if (textEl) textEl.innerText = quote.startsWith('"') ? quote : `"${quote}"`;
+
+      toast.style.display = "block";
+
+      if (quoteToastTimer) clearTimeout(quoteToastTimer);
+      quoteToastTimer = setTimeout(closeQuoteToast, 6000);
+    }
+
+    function closeQuoteToast() {
+      const toast = document.getElementById("quoteToast");
+      if (toast) toast.style.display = "none";
+    }
+
+    /* --------------------------------------------------------
+       LOG ANALYTICS (MINUTES / HOURS / DAYS) LOGIC
+       -------------------------------------------------------- */
+    async function loadAnalytics(timeframe) {
+      currentAnalyticsTimeframe = timeframe || "minutes";
+
+      // Toggle Timeframe Filter Buttons
+      const btnMin = document.getElementById("btnTfMinutes");
+      const btnHr = document.getElementById("btnTfHours");
+      const btnDay = document.getElementById("btnTfDays");
+
+      if (btnMin) btnMin.classList.toggle("active", currentAnalyticsTimeframe === "minutes");
+      if (btnHr) btnHr.classList.toggle("active", currentAnalyticsTimeframe === "hours");
+      if (btnDay) btnDay.classList.toggle("active", currentAnalyticsTimeframe === "days");
+
+      try {
+        const res = await fetch(`/analytics?timeframe=${currentAnalyticsTimeframe}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update 6 KPI Cards
+        const kpiOrders = document.getElementById("kpiTotalOrders");
+        if (kpiOrders) kpiOrders.innerText = data.total_orders;
+
+        const kpiRev = document.getElementById("kpiTotalRevenue");
+        if (kpiRev) kpiRev.innerText = `$${Number(data.total_revenue || 0).toFixed(2)}`;
+
+        const kpiAvg = document.getElementById("kpiAvgPrep");
+        if (kpiAvg) kpiAvg.innerText = `${Number(data.avg_prep_time_sec || 0).toFixed(1)}s`;
+
+        const kpiActive = document.getElementById("kpiActiveOrders");
+        if (kpiActive) kpiActive.innerText = data.active_orders;
+
+        const kpiCirc = document.getElementById("kpiCirculationCups");
+        if (kpiCirc) kpiCirc.innerText = `${data.cups_in_circulation} / 12`;
+
+        const kpiClean = document.getElementById("kpiCleanCups");
+        const cleanCount = (data.cup_counts && data.cup_counts.CLEAN_ON_SHELF !== undefined)
+          ? data.cup_counts.CLEAN_ON_SHELF
+          : (12 - data.cups_in_circulation);
+        if (kpiClean) kpiClean.innerText = `${cleanCount} / 12`;
+
+        // Update Subtitles & Headers
+        const subTitle = document.getElementById("analyticsSubtitle");
+        if (subTitle) subTitle.innerText = `Aggregated audit events, cup lifecycle telemetry & consumer throughput for: ${data.time_label}`;
+
+        const chartLabel = document.getElementById("chartTimeLabel");
+        if (chartLabel) chartLabel.innerText = data.time_label;
+
+        const chartBadge = document.getElementById("chartTimeBadge");
+        if (chartBadge) chartBadge.innerText = `${data.chart_series ? data.chart_series.length : 0} Data Points`;
+
+        // Render Dynamic CSS Timeseries Bar Chart
+        renderTimeseriesChart(data.chart_series || []);
+
+        // Render Cup Lifecycle Audit Events Table
+        rawAuditEvents = data.audit_events || [];
+        renderAuditTable(rawAuditEvents);
+
+        // Render Popular Items & Customer Leaderboard
+        renderPopularItems(data.popular_items || []);
+        renderLeaderboard(data.customer_leaderboard || []);
+      } catch (err) {
+        console.error("Failed to load analytics:", err);
+      }
+    }
+
+    function renderTimeseriesChart(series) {
+      const container = document.getElementById("timeseriesChart");
+      if (!container) return;
+
+      if (!series || series.length === 0) {
+        container.innerHTML = `<div style="margin: auto; color: var(--text-muted); font-size: 0.85rem;">No activity recorded in this period yet.</div>`;
+        return;
+      }
+
+      const is24Hours = series.length > 16;
+      container.style.gap = is24Hours ? "3px" : "8px";
+
+      const orderCounts = series.map(s => Number(s.orders) || 0);
+      const maxOrders = Math.max(...orderCounts, 1);
+      const totalPeriodOrders = orderCounts.reduce((a, b) => a + b, 0);
+      const totalPeriodRev = series.reduce((a, b) => a + Number(b.revenue || 0), 0);
+
+      // Update badge in chart card header
+      defaultChartBadgeHtml = `📊 <strong>${totalPeriodOrders}</strong> orders • <strong>$${totalPeriodRev.toFixed(2)}</strong>`;
+      const chartBadge = document.getElementById("chartTimeBadge");
+      if (chartBadge) {
+        chartBadge.innerHTML = defaultChartBadgeHtml;
+      }
+
+      container.innerHTML = series.map((pt, idx) => {
+        const orders = Number(pt.orders) || 0;
+        const rev = Number(pt.revenue) || 0;
+        const hasOrders = orders > 0;
+        // Scale between 15% and 88% height when orders > 0, flat baseline for 0 orders
+        const heightPercent = hasOrders ? Math.round(15 + (orders / maxOrders) * 73) : 3;
+
+        // In 24h mode, alternate labels (every 2 hours) to prevent overlap or horizontal scrolling
+        const showLabel = !is24Hours || (idx % 2 === 0) || (idx === series.length - 1);
+        const labelContent = showLabel ? pt.time : '<span style="color: #CBD5E1; font-size: 0.6rem;">·</span>';
+
+        return `
+          <div class="chart-bar-wrap"
+               onmouseenter="showChartTooltip(event, '${pt.time}', ${orders}, ${rev})"
+               onmousemove="positionChartTooltip(event)"
+               onmouseleave="hideChartTooltip()">
+            ${hasOrders ? `<div class="chart-pill">${orders}</div>` : `<div class="chart-pill-empty">·</div>`}
+            <div class="chart-bar ${hasOrders ? 'has-orders' : 'no-orders'}" style="height: ${heightPercent}%;"></div>
+            <div class="chart-bar-label">${labelContent}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    let defaultChartBadgeHtml = "";
+
+    function showChartTooltip(event, time, orders, rev) {
+      let tip = document.getElementById("chartFloatingTooltip");
+      if (!tip) {
+        tip = document.createElement("div");
+        tip.id = "chartFloatingTooltip";
+        tip.className = "chart-floating-tooltip";
+        document.body.appendChild(tip);
+      }
+
+      tip.innerHTML = `
+        <div style="font-weight: 700; color: #81B96F; font-size: 0.74rem; margin-bottom: 3px;">⏰ ${time}</div>
+        <div style="font-size: 0.76rem; color: #FFFFFF;">📦 <strong>${orders}</strong> ${orders === 1 ? 'order' : 'orders'}</div>
+        <div style="font-size: 0.74rem; color: #E0E7DE;">💰 <strong>$${Number(rev).toFixed(2)}</strong> revenue</div>
+      `;
+
+      tip.style.display = "block";
+      tip.style.opacity = "1";
+      positionChartTooltip(event);
+
+      const chartBadge = document.getElementById("chartTimeBadge");
+      if (chartBadge) {
+        chartBadge.innerHTML = `🔍 <strong>${time}</strong>: ${orders} ${orders === 1 ? 'order' : 'orders'} • $${Number(rev).toFixed(2)}`;
+      }
+    }
+
+    function positionChartTooltip(event) {
+      const tip = document.getElementById("chartFloatingTooltip");
+      if (!tip || tip.style.display === "none") return;
+
+      const tipRect = tip.getBoundingClientRect();
+      const margin = 12;
+      let x = event.clientX - (tipRect.width / 2);
+      let y = event.clientY - tipRect.height - margin;
+
+      // Smart flip below if too close to viewport top edge
+      if (y < 12) {
+        y = event.clientY + margin + 10;
+      }
+
+      // Ensure inside viewport horizontally
+      if (x < 12) x = 12;
+      if (x + tipRect.width > window.innerWidth - 12) {
+        x = window.innerWidth - tipRect.width - 12;
+      }
+
+      tip.style.left = `${x}px`;
+      tip.style.top = `${y}px`;
+    }
+
+    function hideChartTooltip() {
+      const tip = document.getElementById("chartFloatingTooltip");
+      if (tip) {
+        tip.style.opacity = "0";
+        tip.style.display = "none";
+      }
+      const chartBadge = document.getElementById("chartTimeBadge");
+      if (chartBadge && defaultChartBadgeHtml) {
+        chartBadge.innerHTML = defaultChartBadgeHtml;
+      }
+    }
+
+    function renderAuditTable(events) {
+      const tbody = document.getElementById("auditTableBody");
+      if (!tbody) return;
+
+      if (!events || events.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No audit events recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = events.map(e => {
+        const toStatus = e.new_status || e.to_status || "CLEAN_ON_SHELF";
+        const fromStatus = e.previous_status || e.from_status || "—";
+        const actor = e.trigger_event || e.actor || "Café System";
+        const timeStr = e.timestamp || e.created_at || (e.date ? `${e.date} ${e.created_at}` : "—");
+        const orderId = e.order_id && e.order_id !== "—" ? e.order_id : "—";
+
+        const pillClass = toStatus === "CLEAN_ON_SHELF" ? "clean" :
+                          (toStatus === "IN_BREWING" ? "brewing" :
+                          (toStatus === "WITH_CUSTOMER" ? "customer" : "dishwasher"));
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-size: 0.76rem; color: var(--text-muted);">${timeStr}</td>
+            <td><strong style="color: var(--primary-dark); font-family: monospace; font-size: 0.82rem;">${e.cup_code || '—'}</strong></td>
+            <td><span style="color: var(--text-light); font-size: 0.74rem;">${fromStatus}</span></td>
+            <td><span class="status-pill-mini ${pillClass}">${toStatus}</span></td>
+            <td style="font-weight: 600; color: var(--text-main); font-size: 0.78rem;">${actor}</td>
+            <td style="font-family: monospace; font-size: 0.75rem; color: #7A5515;">${orderId}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function filterAuditLogs() {
+      const input = document.getElementById("auditSearchInput");
+      const q = (input ? input.value : "").toLowerCase().trim();
+      if (!q) {
+        renderAuditTable(rawAuditEvents);
+        return;
+      }
+      const filtered = rawAuditEvents.filter(e => {
+        const cup = (e.cup_code || "").toLowerCase();
+        const toSt = (e.new_status || e.to_status || "").toLowerCase();
+        const fromSt = (e.previous_status || e.from_status || "").toLowerCase();
+        const act = (e.trigger_event || e.actor || "").toLowerCase();
+        const ord = (e.order_id || "").toLowerCase();
+        return cup.includes(q) || toSt.includes(q) || fromSt.includes(q) || act.includes(q) || ord.includes(q);
+      });
+      renderAuditTable(filtered);
+    }
+
+    function renderPopularItems(items) {
+      const container = document.getElementById("popularItemsList");
+      if (!container) return;
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `<p style="font-size: 0.8rem; color: var(--text-muted);">No sales data available yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = items.map((it, idx) => {
+        const itemName = it.name || it.drink_name || "Matcha Drink";
+        const itemCount = it.count !== undefined ? it.count : (it.order_count || 0);
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #FAFBF9; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 800; color: var(--matcha); font-size: 0.82rem;">#${idx + 1}</span>
+              <span style="font-weight: 600; font-size: 0.84rem; color: var(--primary-dark);">${itemName}</span>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-weight: 700; font-size: 0.82rem; color: var(--text-main);">${itemCount} orders</span>
+              <span style="font-size: 0.74rem; color: var(--text-light); margin-left: 6px;">($${Number(it.revenue || 0).toFixed(2)})</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderLeaderboard(customers) {
+      const container = document.getElementById("customerLeaderboardList");
+      if (!container) return;
+
+      if (!customers || customers.length === 0) {
+        container.innerHTML = `<p style="font-size: 0.8rem; color: var(--text-muted);">No customer records yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = customers.map((c, idx) => {
+        const medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : "👤"));
+        const custName = c.name || c.customer_name || "Loyal Guest";
+        const orderCount = c.total_orders !== undefined ? c.total_orders : (c.order_count || 0);
+        const spentStr = c.total_spent ? ` • $${Number(c.total_spent).toFixed(2)}` : "";
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: #FAFBF9; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>${medal}</span>
+              <span style="font-weight: 700; font-size: 0.84rem; color: var(--primary-dark);">${custName}</span>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-weight: 700; font-size: 0.82rem; color: var(--matcha);">${orderCount} visits</span>
+              <span style="font-size: 0.72rem; color: var(--text-light); margin-left: 4px;">${spentStr}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
   </script>
+
+  <!-- Attack on Titan Character Quote Dialogue Toast -->
+  <div id="quoteToast" class="quote-toast">
+    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 8px;">
+      <img id="quoteToastImg" src="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #C5A059;" alt="" />
+      <div>
+        <div id="quoteToastName" style="font-family: 'Cinzel', Georgia, serif; font-size: 0.95rem; font-weight: 700; color: #F4D06F;"></div>
+        <div id="quoteToastTitle" style="font-size: 0.72rem; color: #B8B0A2;"></div>
+      </div>
+    </div>
+    <p id="quoteToastText" style="font-size: 0.84rem; line-height: 1.4; color: #EDE8DE; font-style: italic;"></p>
+    <div style="text-align: right; margin-top: 8px;">
+      <button onclick="closeQuoteToast()" style="background: none; border: none; color: #C5A059; font-size: 0.72rem; cursor: pointer; text-decoration: underline;">Dismiss</button>
+    </div>
+  </div>
 </body>
 </html>

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: waiter
-          image: matcha-cafe:v12
+          image: matcha-cafe:v13
           imagePullPolicy: IfNotPresent
           command: ["python", "-u", "waiter.py"]
           envFrom:
