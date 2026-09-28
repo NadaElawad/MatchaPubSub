@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS orders (
     status VARCHAR(50) DEFAULT 'READY',
     prepared_by VARCHAR(100),
     ordered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    ready_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    ready_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    dining_option VARCHAR(50) DEFAULT 'dine_in'
 );
 
 -- 3. Customers Table (Preferences, spending & loyalty aggregated)

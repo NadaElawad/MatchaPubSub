@@ -15,7 +15,7 @@ import json
 import logging
 import os
 import threading
-from typing import Any, Generator, Sequence
+from typing import Any, Generator
 
 import psycopg2
 from psycopg2 import pool
@@ -476,6 +476,7 @@ def record_order(order_data: dict[str, Any]) -> bool:
     prepared_by = order_data.get("prepared_by", "Kaito (Solo Waiter)")
     ordered_at = order_data.get("ordered_at")
     ready_at = order_data.get("ready_at")
+    dining_option = order_data.get("dining_option")
 
     try:
         with get_db_connection() as conn:
@@ -485,15 +486,16 @@ def record_order(order_data: dict[str, Any]) -> bool:
                     """
                     INSERT INTO orders (
                         order_id, customer_name, drink_name, milk, sweetness, price,
-                        cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, NOW()), COALESCE(%s, NOW()))
+                        cup_code, cup_codes, items, status, prepared_by, ordered_at, ready_at, dining_option
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, COALESCE(%s, NOW()), COALESCE(%s, NOW()), COALESCE(%s, 'take_away'))
                     ON CONFLICT (order_id) DO UPDATE SET
                         cup_code = COALESCE(EXCLUDED.cup_code, orders.cup_code),
                         cup_codes = COALESCE(EXCLUDED.cup_codes, orders.cup_codes),
                         items = COALESCE(EXCLUDED.items, orders.items),
                         status = EXCLUDED.status,
                         prepared_by = EXCLUDED.prepared_by,
-                        ready_at = EXCLUDED.ready_at;
+                        ready_at = EXCLUDED.ready_at,
+                        dining_option = COALESCE(EXCLUDED.dining_option, orders.dining_option);
                     """,
                     (
                         order_id,
@@ -509,6 +511,7 @@ def record_order(order_data: dict[str, Any]) -> bool:
                         prepared_by,
                         ordered_at,
                         ready_at,
+                        dining_option,
                     ),
                 )
 
@@ -1128,6 +1131,12 @@ def find_character_by_name(name: str | None) -> dict[str, Any] | None:
     Matches exact full names, canonical aliases, honorific prefixes
     (e.g., 'Captain Levi', 'Commander Erwin'), and first/last names.
     Guarantees the returned character has a verified matching local portrait image.
+
+    Args:
+        name: Name or alias of the character.
+
+    Returns:
+        dict[str, Any] | None: Matching character dictionary if found, else None.
     """
     if not name or not isinstance(name, str):
         return None
@@ -1326,12 +1335,12 @@ def get_analytics_breakdown(timeframe: str = "minutes") -> dict[str, Any]:
                     cur.execute(
                         """
                         SELECT 
-                            to_char(b.bucket, 'HH24:MI') AS time_bucket,
+                            TO_CHAR(b.bucket, 'HH24:MI') AS time_bucket,
                             COUNT(o.order_id) AS orders_count,
                             COALESCE(SUM(o.price), 0) AS total_revenue
-                        FROM generate_series(
-                            date_trunc('hour', NOW()) + (date_part('minute', NOW())::int / 5 * 5) * INTERVAL '1 minute' - INTERVAL '55 minutes',
-                            date_trunc('hour', NOW()) + (date_part('minute', NOW())::int / 5 * 5) * INTERVAL '1 minute',
+                        FROM GENERATE_SERIES(
+                            DATE_TRUNC('hour', NOW()) + (DATE_PART('minute', NOW())::INT / 5 * 5) * INTERVAL '1 minute' - INTERVAL '55 minutes',
+                            DATE_TRUNC('hour', NOW()) + (DATE_PART('minute', NOW())::INT / 5 * 5) * INTERVAL '1 minute',
                             INTERVAL '5 minutes'
                         ) AS b(bucket)
                         LEFT JOIN orders o ON (
@@ -1367,12 +1376,12 @@ def get_analytics_breakdown(timeframe: str = "minutes") -> dict[str, Any]:
                     cur.execute(
                         """
                         SELECT 
-                            to_char(b.bucket, 'HH24:00') AS time_bucket,
+                            TO_CHAR(b.bucket, 'HH24:00') AS time_bucket,
                             COUNT(o.order_id) AS orders_count,
                             COALESCE(SUM(o.price), 0) AS total_revenue
-                        FROM generate_series(
-                            date_trunc('hour', NOW()) - INTERVAL '23 hours',
-                            date_trunc('hour', NOW()),
+                        FROM GENERATE_SERIES(
+                            DATE_TRUNC('hour', NOW()) - INTERVAL '23 hours',
+                            DATE_TRUNC('hour', NOW()),
                             INTERVAL '1 hour'
                         ) AS b(bucket)
                         LEFT JOIN orders o ON (
@@ -1408,12 +1417,12 @@ def get_analytics_breakdown(timeframe: str = "minutes") -> dict[str, Any]:
                     cur.execute(
                         """
                         SELECT 
-                            to_char(b.bucket, 'Mon DD') AS time_bucket,
+                            TO_CHAR(b.bucket, 'Mon DD') AS time_bucket,
                             COUNT(o.order_id) AS orders_count,
                             COALESCE(SUM(o.price), 0) AS total_revenue
-                        FROM generate_series(
-                            date_trunc('day', NOW()) - INTERVAL '6 days',
-                            date_trunc('day', NOW()),
+                        FROM GENERATE_SERIES(
+                            DATE_TRUNC('day', NOW()) - INTERVAL '6 days',
+                            DATE_TRUNC('day', NOW()),
                             INTERVAL '1 day'
                         ) AS b(bucket)
                         LEFT JOIN orders o ON (
@@ -1447,17 +1456,18 @@ def get_analytics_breakdown(timeframe: str = "minutes") -> dict[str, Any]:
                 # 2. Popular creations breakdown in this timeframe
                 interval_clause = "60 minutes" if timeframe == "minutes" else ("24 hours" if timeframe == "hours" else "7 days")
                 cur.execute(
-                    f"""
+                    """
                     SELECT 
                         drink_name,
-                        COUNT(*) as count,
-                        COALESCE(SUM(price), 0) as revenue
+                        COUNT(*) AS count,
+                        COALESCE(SUM(price), 0) AS revenue
                     FROM orders
-                    WHERE ordered_at >= NOW() - INTERVAL '{interval_clause}'
+                    WHERE ordered_at >= NOW() - %s::INTERVAL
                     GROUP BY drink_name
                     ORDER BY count DESC
                     LIMIT 6;
-                    """
+                    """,
+                    (interval_clause,),
                 )
                 for r in cur.fetchall():
                     popular_items.append({
@@ -1472,13 +1482,14 @@ def get_analytics_breakdown(timeframe: str = "minutes") -> dict[str, Any]:
 
                 # 4. Audit Log Events in this timeframe
                 cur.execute(
-                    f"""
+                    """
                     SELECT id, cup_code, from_status, to_status, order_id, actor, created_at
                     FROM cup_audit_log
-                    WHERE created_at >= NOW() - INTERVAL '{interval_clause}'
+                    WHERE created_at >= NOW() - %s::INTERVAL
                     ORDER BY id DESC
                     LIMIT 30;
-                    """
+                    """,
+                    (interval_clause,),
                 )
                 audit_rows = cur.fetchall()
                 if not audit_rows:
@@ -1610,7 +1621,7 @@ def get_active_diners() -> dict[str, Any]:
                 recent_orders = cur.fetchall()
 
                 # Calculate live cup circulation from database
-                cur.execute("SELECT status, count(*) FROM cups GROUP BY status;")
+                cur.execute("SELECT status, COUNT(*) FROM cups GROUP BY status;")
                 cup_rows = cur.fetchall()
                 cup_counts = {r["status"]: r["count"] for r in cup_rows}
                 clean_cups = cup_counts.get("CLEAN_ON_SHELF", 0) + cup_counts.get("CLEAN", 0)

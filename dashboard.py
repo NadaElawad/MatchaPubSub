@@ -12,10 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
-from typing import Any
 
-import db
 from db import CupStatus, get_db_connection
 
 # ---------------------------------------------------------------------------

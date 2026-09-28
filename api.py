@@ -20,10 +20,6 @@ import os
 import random
 from typing import Any, AsyncGenerator
 
-# Ensure explicit web audio MIME types for Safari & modern browsers
-mimetypes.add_type("audio/wav", ".wav")
-mimetypes.add_type("audio/mp4", ".m4a")
-
 from confluent_kafka import Producer
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +29,10 @@ from pydantic import BaseModel, Field
 
 import db
 from stream_analytics import stream_analytics_engine
+
+# Ensure explicit web audio MIME types for Safari & modern browsers
+mimetypes.add_type("audio/wav", ".wav")
+mimetypes.add_type("audio/mp4", ".m4a")
 
 # ---------------------------------------------------------------------------
 # Logging Configuration
@@ -491,7 +491,17 @@ def place_order(order: OrderCreateRequest) -> dict[str, Any]:
 
 @app.get("/orders/{order_id}", response_model=OrderStatusResponse, tags=["Orders"])
 def get_order_status(order_id: str) -> dict[str, Any]:
-    """Retrieves live status and fulfillment details for an order."""
+    """Retrieves live status and fulfillment details for an order.
+
+    Args:
+        order_id: Unique order identifier.
+
+    Returns:
+        dict[str, Any]: Order details dictionary.
+
+    Raises:
+        HTTPException: If order_id does not exist.
+    """
     order = db.get_order(order_id)
     if not order:
         raise HTTPException(
@@ -506,13 +516,31 @@ def list_orders(
     customer: str | None = Query(None, description="Filter by customer name"),
     limit: int = Query(20, ge=1, le=100, description="Max orders to return"),
 ) -> list[dict[str, Any]]:
-    """Lists recent orders with optional filtering by customer."""
+    """Lists recent orders with optional filtering by customer.
+
+    Args:
+        customer: Optional customer name for filtering.
+        limit: Maximum number of orders to return.
+
+    Returns:
+        list[dict[str, Any]]: List of recent orders matching filter criteria.
+    """
     return db.get_recent_orders(limit=limit, customer_name=customer)
 
 
 @app.get("/customers/{customer_name}", tags=["Customers"])
 def get_customer_profile(customer_name: str) -> dict[str, Any]:
-    """Fetches customer loyalty profile and dynamic preferences."""
+    """Fetches customer loyalty profile and dynamic preferences.
+
+    Args:
+        customer_name: Customer name to query.
+
+    Returns:
+        dict[str, Any]: Profile details dictionary.
+
+    Raises:
+        HTTPException: If customer has no recorded visits.
+    """
     profile = db.get_customer_profile(customer_name)
     if not profile:
         raise HTTPException(
@@ -527,13 +555,28 @@ def get_customer_profile(customer_name: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 @app.get("/cups", tags=["Cups & Inventory"])
 def get_cup_inventory() -> dict[str, Any]:
-    """Returns the live cup inventory breakdown across shelf, barista, customer, and dishwasher."""
+    """Returns the live cup inventory breakdown across shelf, barista, customer, and dishwasher.
+
+    Returns:
+        dict[str, Any]: Partitioned cup statuses and counts.
+    """
     return db.get_cup_inventory_summary()
 
 
 @app.post("/cups/{cup_code}/return", tags=["Cups & Inventory"])
 def return_cup(cup_code: str, customer_name: str | None = None) -> dict[str, str]:
-    """Returns a used cup to the dishwasher station."""
+    """Returns a used cup to the dishwasher station.
+
+    Args:
+        cup_code: Identifier of the ceramic cup being returned.
+        customer_name: Optional customer name returning the cup.
+
+    Returns:
+        dict[str, str]: Confirmation message and cup status.
+
+    Raises:
+        HTTPException: If the cup cannot be transitioned to dishwasher.
+    """
     global kafka_producer
     event = {
         "cup_code": cup_code,
@@ -574,13 +617,21 @@ def return_cup(cup_code: str, customer_name: str | None = None) -> dict[str, str
 # ---------------------------------------------------------------------------
 @app.get("/restaurant/diners", tags=["Restaurant Visualisation"])
 def get_active_diners() -> dict[str, Any]:
-    """Returns the live state of the 12-seat Mess Hall table and real-time cup metrics."""
+    """Returns the live state of the 12-seat Mess Hall table and real-time cup metrics.
+
+    Returns:
+        dict[str, Any]: Active diners, seat occupancies, and cup counts.
+    """
     return db.get_active_diners()
 
 
 @app.get("/restaurant/state", tags=["Restaurant Visualisation"])
 def get_restaurant_realtime_state() -> dict[str, Any]:
-    """Returns full Attack on Titan themed restaurant state."""
+    """Returns full Attack on Titan themed restaurant state.
+
+    Returns:
+        dict[str, Any]: Aggregated mess hall state including seats and baristas.
+    """
     return db.get_restaurant_state()
 
 
@@ -593,6 +644,12 @@ def get_analytics(
     When timeframe is 'minutes' and the real-time Quix Streams engine is ready,
     serves live aggregated metrics, running popular items, and tumbling 5-minute
     windows directly from in-memory stream state. Otherwise falls back to PostgreSQL.
+
+    Args:
+        timeframe: Timeseries granularity ('minutes', 'hours', or 'days').
+
+    Returns:
+        dict[str, Any]: Aggregated chart series, audit events, and KPI metrics.
     """
     if timeframe not in ("minutes", "hours", "days"):
         timeframe = "minutes"
@@ -623,7 +680,14 @@ def get_analytics(
 
 @app.post("/restaurant/order-seat", tags=["Restaurant Visualisation"])
 def order_for_seat(req: SeatOrderRequest) -> dict[str, Any]:
-    """Places an order on behalf of a specific seat in the Mess Hall."""
+    """Places an order on behalf of a specific seat in the Mess Hall.
+
+    Args:
+        req: Validated seat order parameters.
+
+    Returns:
+        dict[str, Any]: Placed order response dictionary.
+    """
     char = next((c for c in db.AOT_CHARACTERS if c["seat_number"] == req.seat_number), None)
     char_name = req.character_name or (char["name"] if char else f"Cadet #{req.seat_number}")
     dname = req.drink_name or (char["favorite_drink"] if char else "Strawberry Matcha Float")
@@ -646,6 +710,12 @@ def simulate_scout_rush(count: int = Query(default=5, ge=1, le=12)) -> dict[str,
     Selects random cadets from the character pool and diverse items from the menu,
     placing dine-in orders strictly constrained to the number of available seats
     in the 12-seat Mess Hall so no cadets are served standing up without a seat.
+
+    Args:
+        count: Desired number of concurrent diners to seat.
+
+    Returns:
+        dict[str, Any]: Summary of placed orders and remaining table capacity.
     """
     diners_state = db.get_active_diners()
     occupied = diners_state.get("occupied_count", 0)

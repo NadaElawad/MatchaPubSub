@@ -13,7 +13,6 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Sequence
 
 from client import MENU, MILKS, SWEETNESS_LEVELS
 

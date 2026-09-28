@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import signal
-import sys
 import time
 from typing import Any
 
@@ -193,11 +192,16 @@ class SoloWaiterService:
                                     with conn.cursor() as cur:
                                         cur.execute(
                                             """
-                                            UPDATE cups SET status = 'CLEAN_ON_SHELF', current_order_id = NULL, current_customer = NULL
+                                            UPDATE cups
+                                            SET status = 'CLEAN_ON_SHELF',
+                                                current_order_id = NULL,
+                                                current_customer = NULL
                                             WHERE cup_code IN (
-                                                SELECT cup_code FROM cups 
+                                                SELECT cup_code
+                                                FROM cups 
                                                 WHERE status != 'IN_BREWING' 
-                                                ORDER BY updated_at ASC LIMIT 5
+                                                ORDER BY updated_at ASC
+                                                LIMIT 5
                                             );
                                             """
                                         )
@@ -273,6 +277,7 @@ class SoloWaiterService:
             "status": db.OrderStatus.READY,
             "prepared_by": "Kaito (Solo Waiter)",
             "ready_at": datetime.now(timezone.utc).isoformat(),
+            "dining_option": order_data.get("dining_option", "take_away"),
         }
 
         # Publish ready event to Kafka

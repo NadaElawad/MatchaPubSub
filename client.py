@@ -15,7 +15,7 @@ import os
 import random
 import sys
 import time
-from typing import Any, Tuple
+from typing import Any
 import uuid
 
 try:
@@ -372,7 +372,7 @@ def main() -> None:
     else:
         name, drink, milk, sweetness = prompt_user_order(menu_items, milks, sweetness_levels)
 
-    if args.direct-kafka:
+    if args.direct_kafka:
         run_direct_kafka_client(
             bootstrap_server=bootstrap_server,
             orders_topic=orders_topic,

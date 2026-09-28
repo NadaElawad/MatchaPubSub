@@ -14,14 +14,13 @@ Key Features:
 """
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-import json
 import logging
 import os
 import threading
-import time
 from typing import Any
+import uuid
 
 from quixstreams import Application
 
@@ -72,7 +71,6 @@ class QuixStreamAnalytics:
             consumer_group: Optional Kafka consumer group identifier. Defaults to
                 a unique session group ensuring full stream hydration from offset 0.
         """
-        import uuid
         self.bootstrap_servers = bootstrap_servers
         self.orders_topic_name = orders_topic
         self.ready_topic_name = ready_topic
