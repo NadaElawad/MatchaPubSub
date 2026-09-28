@@ -1065,44 +1065,182 @@ AOT_CHARACTERS: list[dict[str, Any]] = [
 
 
 def _load_all_aot_characters() -> list[dict[str, Any]]:
-    """Loads all Attack on Titan characters from local dataset.
+    """Loads Attack on Titan characters with verified local portrait images.
 
     Returns:
-        list[dict[str, Any]]: Complete character pool.
+        list[dict[str, Any]]: Validated character pool with confirmed image files.
     """
+    img_dir = os.path.join(os.path.dirname(__file__), "static", "images", "characters")
     chars_file = os.path.join(os.path.dirname(__file__), "static", "characters.json")
+    result: list[dict[str, Any]] = []
+    seen_names: set[str] = set()
+
     if os.path.exists(chars_file):
         try:
             with open(chars_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                result = []
                 for idx, c in enumerate(data):
-                    name = c.get("name") or f"Scout #{idx+1}"
+                    name = (c.get("name") or "").strip()
+                    if not name:
+                        continue
                     img_url = c.get("image_url") or ""
                     filename = os.path.basename(img_url) if img_url else ""
-                    local_file = os.path.join(
-                        os.path.dirname(__file__), "static", "images", "characters", filename
-                    )
-                    local_path = f"/images/characters/{filename}" if os.path.exists(local_file) else img_url
-                    result.append({
-                        "id": str(c.get("id", idx)),
-                        "name": name,
-                        "image": local_path or img_url,
-                    })
-                if result:
-                    return result
+                    local_file = os.path.join(img_dir, filename) if filename else ""
+                    if filename and os.path.isfile(local_file):
+                        result.append({
+                            "id": str(c.get("id", idx)),
+                            "name": name,
+                            "image": f"/images/characters/{filename}",
+                        })
+                        seen_names.add(name.lower())
         except Exception as exc:
             logger.error("Error loading AoT characters from %s: %s", chars_file, exc)
 
-    # Core 12 fallback
-    return [
-        {"id": c["id"], "name": c["name"], "image": f"/images/characters/{c['id']}.webp"}
-        for c in AOT_CHARACTERS
-    ]
+    # Ensure core 12 characters are present with their canonical local assets
+    for c in AOT_CHARACTERS:
+        c_name = c["name"]
+        if c_name.lower() not in seen_names:
+            img_file = f"{c['id']}.webp"
+            if os.path.isfile(os.path.join(img_dir, img_file)):
+                result.append({
+                    "id": c["id"],
+                    "name": c_name,
+                    "image": f"/images/characters/{img_file}",
+                })
+                seen_names.add(c_name.lower())
+
+    if not result:
+        return [
+            {"id": c["id"], "name": c["name"], "image": f"/images/characters/{c['id']}.webp"}
+            for c in AOT_CHARACTERS
+        ]
+
+    return result
 
 
 _AOT_CHARACTER_POOL: list[dict[str, Any]] = _load_all_aot_characters()
 _diner_assignments: dict[str, dict[str, Any]] = {}
+
+
+def find_character_by_name(name: str | None) -> dict[str, Any] | None:
+    """Finds an Attack on Titan character matching the customer's name.
+
+    Matches exact full names, canonical aliases, honorific prefixes
+    (e.g., 'Captain Levi', 'Commander Erwin'), and first/last names.
+    Guarantees the returned character has a verified matching local portrait image.
+    """
+    if not name or not isinstance(name, str):
+        return None
+
+    raw = name.strip()
+    if not raw:
+        return None
+    norm = raw.lower()
+
+    # Strip military ranks / prefixes
+    for prefix in ("captain ", "commander ", "section commander ", "cadet ", "lord "):
+        if norm.startswith(prefix):
+            norm = norm[len(prefix):].strip()
+
+    # 1. Exact match on pool character name (case-insensitive)
+    for c in _AOT_CHARACTER_POOL:
+        if c.get("name", "").strip().lower() == norm:
+            return c
+
+    # 2. Canonical alias dictionary
+    alias_map = {
+        "eren": "Eren Yeager",
+        "eren yeager": "Eren Yeager",
+        "mikasa": "Mikasa Ackerman",
+        "mikasa ackerman": "Mikasa Ackerman",
+        "armin": "Armin Arlert",
+        "armin arlert": "Armin Arlert",
+        "levi": "Levi Ackerman",
+        "levi ackerman": "Levi Ackerman",
+        "erwin": "Erwin Smith",
+        "erwin smith": "Erwin Smith",
+        "hange": "Hange Zoe",
+        "hange zoe": "Hange Zoe",
+        "hange zoë": "Hange Zoë",
+        "reiner": "Reiner Braun",
+        "reiner braun": "Reiner Braun",
+        "bertolt": "Bertholt Hoover",
+        "bertolt hoover": "Bertholt Hoover",
+        "bertholt": "Bertholt Hoover",
+        "bertholt hoover": "Bertholt Hoover",
+        "annie": "Annie Leonhart",
+        "annie leonhart": "Annie Leonhart",
+        "sasha": "Sasha Blouse",
+        "sasha blouse": "Sasha Blouse",
+        "sasha braus": "Sasha Blouse",
+        "jean": "Jean Kirstein",
+        "jean kirstein": "Jean Kirstein",
+        "connie": "Connie Springer",
+        "connie springer": "Connie Springer",
+        "historia": "Historia Reiss",
+        "historia reiss": "Historia Reiss",
+        "krista": "Krista Lenz",
+        "krista lenz": "Krista Lenz",
+        "ymir": "Ymir",
+        "petra": "Petra Ral",
+        "petra ral": "Petra Ral",
+        "eld": "Eld Jinn",
+        "eld jinn": "Eld Jinn",
+        "gunther": "Gunther Schultz",
+        "gunther schultz": "Gunther Schultz",
+        "oluo": "Oluo Bozad",
+        "oluo bozad": "Oluo Bozad",
+        "moblit": "Moblit Berner",
+        "moblit berner": "Moblit Berner",
+        "mike": "Mike Zacharias",
+        "mike zacharias": "Mike Zacharias",
+        "nanaba": "Nanaba",
+        "gelgar": "Gelgar",
+        "henning": "Henning",
+        "lynne": "Lynne",
+        "dita": "Dita Ness",
+        "dita ness": "Dita Ness",
+        "luke": "Luke Siss",
+        "luke siss": "Luke Siss",
+        "dieter": "Dieter",
+        "furlan": "Furlan Church",
+        "furlan church": "Furlan Church",
+        "isabel": "Isabel Magnolia",
+        "isabel magnolia": "Isabel Magnolia",
+        "ilse": "Ilse Langnar",
+        "ilse langnar": "Ilse Langnar",
+        "pixis": "Dot Pixis",
+        "dot pixis": "Dot Pixis",
+        "hannes": "Hannes",
+        "rico": "Rico Brzenska",
+        "rico brzenska": "Rico Brzenska",
+        "ian": "Ian Dietrich",
+        "ian dietrich": "Ian Dietrich",
+        "mitabi": "Mitabi Jarnach",
+        "mitabi jarnach": "Mitabi Jarnach",
+        "kitz": "Kitz Weilman",
+        "kitz weilman": "Kitz Weilman",
+        "gustav": "Gustav",
+        "nile": "Nile Dok",
+        "nile dok": "Nile Dok",
+        "hitch": "Hitch Dreyse",
+        "hitch dreyse": "Hitch Dreyse",
+        "marlowe": "Marlowe Freudenberg",
+        "marlowe freudenberg": "Marlowe Freudenberg",
+    }
+    target = alias_map.get(norm)
+    if target:
+        for c in _AOT_CHARACTER_POOL:
+            if c.get("name", "").strip().lower() == target.lower():
+                return c
+
+    # 3. Partial first / last name match
+    for c in _AOT_CHARACTER_POOL:
+        c_parts = [p.lower() for p in c.get("name", "").split() if len(p) > 2]
+        if norm in c_parts or any(p == norm for p in c_parts):
+            return c
+
+    return None
 
 
 def get_dining_action_label(
@@ -1518,11 +1656,17 @@ def get_active_diners() -> dict[str, Any]:
         for order, elapsed, remaining, ordered_at in valid_orders:
             oid = order["order_id"]
 
-            # Assign character and seat if first time seeing this order
+            # Assign character and seat matching customer_name if first time seeing this order
+            cust_name = (order.get("customer_name") or "").strip()
             if oid not in _diner_assignments:
-                h = int(hashlib.md5(oid.encode()).hexdigest(), 16)
-                char_idx = h % len(_AOT_CHARACTER_POOL)
-                char = _AOT_CHARACTER_POOL[char_idx]
+                matched_char = find_character_by_name(cust_name)
+                if matched_char:
+                    char = matched_char
+                else:
+                    # Deterministic fallback for custom patron names
+                    h = int(hashlib.md5(oid.encode()).hexdigest(), 16)
+                    char_idx = h % len(_AOT_CHARACTER_POOL)
+                    char = _AOT_CHARACTER_POOL[char_idx]
 
                 seat: int | None = None
                 for s in range(1, 13):
@@ -1537,6 +1681,11 @@ def get_active_diners() -> dict[str, Any]:
                     "seat": seat,
                 }
                 occupied_seats.add(seat)
+            else:
+                # Ensure in-memory assignment matches customer_name if customer is a known AoT character
+                matched_char = find_character_by_name(cust_name)
+                if matched_char and _diner_assignments[oid]["character"].get("name") != matched_char.get("name"):
+                    _diner_assignments[oid]["character"] = matched_char
 
             assignment = _diner_assignments[oid]
 

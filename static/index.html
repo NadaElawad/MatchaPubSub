@@ -3778,6 +3778,95 @@
       southContainer.innerHTML = southHtml;
     }
 
+    function getScoutAvatarForName(name) {
+      if (!name) return null;
+      const norm = name.trim().toLowerCase().replace(/^(captain|commander|section commander|cadet|lord)\s+/, "");
+      const map = {
+        "eren": "/images/characters/eren-yeager.webp",
+        "eren yeager": "/images/characters/eren-yeager.webp",
+        "mikasa": "/images/characters/mikasa-ackerman.webp",
+        "mikasa ackerman": "/images/characters/mikasa-ackerman.webp",
+        "armin": "/images/characters/armin-arlert.webp",
+        "armin arlert": "/images/characters/armin-arlert.webp",
+        "levi": "/images/characters/levi-ackerman.webp",
+        "levi ackerman": "/images/characters/levi-ackerman.webp",
+        "erwin": "/images/characters/erwin-smith.webp",
+        "erwin smith": "/images/characters/erwin-smith.webp",
+        "hange": "/images/characters/hange-zoe.webp",
+        "hange zoe": "/images/characters/hange-zoe.webp",
+        "hange zoë": "/images/characters/hange-zoe.webp",
+        "reiner": "/images/characters/reiner-braun.webp",
+        "reiner braun": "/images/characters/reiner-braun.webp",
+        "bertolt": "/images/characters/bertholt-hoover.webp",
+        "bertholt": "/images/characters/bertholt-hoover.webp",
+        "bertholt hoover": "/images/characters/bertholt-hoover.webp",
+        "annie": "/images/characters/annie-leonhart.webp",
+        "annie leonhart": "/images/characters/annie-leonhart.webp",
+        "sasha": "/images/characters/sasha-blouse.webp",
+        "sasha blouse": "/images/characters/sasha-blouse.webp",
+        "sasha braus": "/images/characters/sasha-blouse.webp",
+        "jean": "/images/characters/jean-kirstein.webp",
+        "jean kirstein": "/images/characters/jean-kirstein.webp",
+        "connie": "/images/characters/connie-springer.webp",
+        "connie springer": "/images/characters/connie-springer.webp",
+        "historia": "/images/characters/historia.webp",
+        "historia reiss": "/images/characters/historia.webp",
+        "krista": "/images/characters/krista-lenz.webp",
+        "krista lenz": "/images/characters/krista-lenz.webp",
+        "ymir": "/images/characters/ymir.webp",
+        "petra": "/images/characters/petra-ral.webp",
+        "petra ral": "/images/characters/petra-ral.webp",
+        "eld": "/images/characters/eld-jinn.webp",
+        "eld jinn": "/images/characters/eld-jinn.webp",
+        "gunther": "/images/characters/gunther-schultz.webp",
+        "gunther schultz": "/images/characters/gunther-schultz.webp",
+        "oluo": "/images/characters/oluo-bozad.webp",
+        "oluo bozad": "/images/characters/oluo-bozad.webp",
+        "moblit": "/images/characters/moblit-berner.webp",
+        "moblit berner": "/images/characters/moblit-berner.webp",
+        "mike": "/images/characters/mike-zacharias.webp",
+        "mike zacharias": "/images/characters/mike-zacharias.webp",
+        "nanaba": "/images/characters/nanaba.webp",
+        "gelgar": "/images/characters/gelgar.webp",
+        "henning": "/images/characters/henning.webp",
+        "lynne": "/images/characters/lynne.webp",
+        "dita": "/images/characters/dita-ness.webp",
+        "dita ness": "/images/characters/dita-ness.webp",
+        "luke": "/images/characters/luke-siss.webp",
+        "luke siss": "/images/characters/luke-siss.webp",
+        "dieter": "/images/characters/dieter.webp",
+        "furlan": "/images/characters/furlan-church.webp",
+        "furlan church": "/images/characters/furlan-church.webp",
+        "isabel": "/images/characters/isabel-magnolia.webp",
+        "isabel magnolia": "/images/characters/isabel-magnolia.webp",
+        "ilse": "/images/characters/ilse-langnar.webp",
+        "ilse langnar": "/images/characters/ilse-langnar.webp",
+        "pixis": "/images/characters/dot-pixis.webp",
+        "dot pixis": "/images/characters/dot-pixis.webp",
+        "hannes": "/images/characters/hannes.webp",
+        "rico": "/images/characters/rico-brzenska.webp",
+        "rico brzenska": "/images/characters/rico-brzenska.webp",
+        "ian": "/images/characters/ian-dietrich.webp",
+        "ian dietrich": "/images/characters/ian-dietrich.webp",
+        "mitabi": "/images/characters/mitabi-jarnach.webp",
+        "mitabi jarnach": "/images/characters/mitabi-jarnach.webp",
+        "kitz": "/images/characters/kitz-weilman.webp",
+        "kitz weilman": "/images/characters/kitz-weilman.webp",
+        "gustav": "/images/characters/gustav.webp",
+        "nile": "/images/characters/nile-dok.webp",
+        "nile dok": "/images/characters/nile-dok.webp",
+        "hitch": "/images/characters/hitch-dreyse.webp",
+        "hitch dreyse": "/images/characters/hitch-dreyse.webp",
+        "marlowe": "/images/characters/marlowe-freudenberg.webp",
+        "marlowe freudenberg": "/images/characters/marlowe-freudenberg.webp",
+      };
+      if (map[norm]) return map[norm];
+      for (const [key, val] of Object.entries(map)) {
+        if (norm === key || norm.includes(key)) return val;
+      }
+      return null;
+    }
+
     function buildSeatHtml(seat, side) {
       const sNum = seat.seat_number;
       const isOcc = seat.occupied;
@@ -3807,8 +3896,7 @@
       const actionLabel = seat.action_label || (seat.is_dessert ? "Savoring Dessert 🍰" : "Sipping Matcha 🍵");
       const timerText = seat.seconds_remaining > 0 ? `${seat.seconds_remaining}s left` : "Leaving...";
 
-      // User requirement: "You Also don't need to include the AoT character's names in the text bubble"
-      // Shows: Customer name, drink/dessert name, dynamic action label, countdown timer
+      // User requirement: Customer name and character avatar must strictly match
       const bubbleHtml = `
         <div class="seat-bubble-card">
           <div class="bubble-cust-name">${escapeHtml(seat.customer_name)}</div>
@@ -3819,10 +3907,12 @@
         </div>
       `;
 
-      const avatarImg = seat.image || `/images/characters/${seat.character_id}.webp`;
+      // Guarantee customer name matches character image
+      const matchedAvatar = getScoutAvatarForName(seat.customer_name);
+      const avatarImg = matchedAvatar || seat.image || (seat.character_id ? `/images/characters/${seat.character_id}.webp` : "/images/characters/eren-yeager.webp");
       const chairHtml = `
         <div class="chair-graphic occupied-chair" title="${escapeHtml(seat.customer_name)} (Seat #${sNum})">
-          <img src="${avatarImg}" class="chair-avatar-img" alt="Scout Patron" onerror="this.onerror=null;this.src='/images/characters/eren.webp';" />
+          <img src="${avatarImg}" class="chair-avatar-img" alt="${escapeHtml(seat.customer_name)}" onerror="this.onerror=null;this.src='/images/characters/eren.webp';" />
           <div class="chair-seat-number">#${sNum}</div>
         </div>
       `;
@@ -3954,7 +4044,7 @@
               name: "Sasha Braus",
               title: "104th Training Corps",
               quote: "“Matcha Basque Cheesecake and artisan pastries?! Quick, grab the open seats!”",
-              img: "/images/characters/sasha-braus.webp"
+              img: "/images/characters/sasha-blouse.webp"
             }
           ];
           const q = quotes[Math.floor(Math.random() * quotes.length)];

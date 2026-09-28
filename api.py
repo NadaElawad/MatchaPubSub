@@ -629,8 +629,19 @@ def simulate_scout_rush(count: int = Query(default=5, ge=1, le=12)) -> dict[str,
     pool = getattr(db, "_AOT_CHARACTER_POOL", db.AOT_CHARACTERS) or db.AOT_CHARACTERS
 
     # Filter out cadets who are already currently seated at the table
-    seated_names = {d.get("character_name") for d in diners_state.get("diners", [])}
-    available_pool = [c for c in pool if c.get("name") not in seated_names] or pool
+    seated_names = {
+        (d.get("character_name") or "").strip().lower()
+        for d in diners_state.get("diners", [])
+        if d.get("character_name")
+    } | {
+        (d.get("customer_name") or "").strip().lower()
+        for d in diners_state.get("diners", [])
+        if d.get("customer_name")
+    }
+    available_pool = [
+        c for c in pool
+        if (c.get("name") or "").strip().lower() not in seated_names
+    ] or pool
     sample_size = min(actual_count, len(available_pool))
     candidates = random.sample(available_pool, k=sample_size)
 
