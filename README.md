@@ -1,115 +1,236 @@
-# 🍵 MatchaPubSub: Event-Driven Matcha Café
+# 🍵 MatchaPubSub: Event-Driven Matcha Café & Streaming Engine
 
-An asynchronous, event-driven café application powered by **Apache Kafka** (KRaft mode).
+An asynchronous, event-driven microservices café platform powered by **Apache Kafka** (KRaft mode), **FastAPI**, **Quix Streams**, and **PostgreSQL 16**.
 
-Simulates a real-world matcha café where multiple clients place orders, and a **single solo waiter (barista)** handles the queue one by one, calling out completed orders at a shared pickup counter.
+Simulates an artisanal Japanese matcha café featuring a solo barista, an automated dishwasher, a finite pool of handcrafted ceramic cups, real-time streaming analytics, and an interactive **Attack on Titan Survey Corps Mess Hall** web application with authentic multi-layer soundscapes.
 
 ---
 
-## 🏛 Architecture: The "Pickup Counter" Pattern
+## 🏛 Architecture & Data Flow
+
+The platform decouples order ingestion, kitchen preparation, cup sanitation, and streaming telemetry through Kafka topics and PostgreSQL concurrency primitives:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Customer as 👥 Customer (client.py)
+    actor Customer as 👥 Customer / Web UI (static/ & client.py)
+    participant API as ⚡ Order API (api.py)
     participant OrdersTopic as 📥 Topic: matcha-orders
     actor Waiter as 🧑‍🍳 Solo Waiter (waiter.py)
     participant ReadyTopic as 📤 Topic: matcha-ready
-    
-    Customer->>OrdersTopic: 1. Places order with key=order_id
-    Note over OrdersTopic,Waiter: Orders queue up safely while waiter brews
-    Waiter->>OrdersTopic: 2. Consumes next ticket (FIFO)
-    Note over Waiter: Whisking matcha & steaming milk (~2s)
-    Waiter->>ReadyTopic: 3. Publishes ready event with key=order_id
-    Note over Customer,ReadyTopic: Customer hears announcement for their order_id
-    ReadyTopic->>Customer: 4. Customer picks up their drink and leaves!
+    participant ReturnsTopic as 🫧 Topic: matcha-cup-returns
+    actor Washer as 🧼 Dishwasher & Busser (dishwasher.py)
+    participant CleanTopic as ✨ Topic: matcha-cup-clean
+    participant StreamEngine as 📊 Quix Streams (stream_analytics.py)
+    participant DB as 🐘 PostgreSQL (matcha_cafe)
+
+    Customer->>API: 1. Place order (Tray items, dining option)
+    API->>DB: 2. Persist order with status PENDING
+    API->>OrdersTopic: 3. Publish order event (key=order_id)
+    OrdersTopic->>StreamEngine: 4. Ingest into live streaming pipeline
+
+    OrdersTopic->>Waiter: 5. Consume order (FIFO queue)
+    Waiter->>DB: 6. Atomically claim ceramic cup (FOR UPDATE SKIP LOCKED)
+    Note over Waiter: Whisk ceremonial matcha foam & plate pastries
+    Waiter->>ReadyTopic: 7. Publish ready event (key=order_id, cup_codes)
+    ReadyTopic->>StreamEngine: 8. Compute rolling prep duration & velocity
+    Waiter->>DB: 9. Upsert order (READY) & dynamic customer preferences
+
+    Customer->>ReadyTopic: 10. Listen for order_id / collect drink
+    Note over Customer: Enjoy matcha at the 12-seat Mess Hall table (~45s)
+    Customer->>ReturnsTopic: 11. Return used ceramic cup
+
+    ReturnsTopic->>Washer: 12. Consume dirty cup event
+    Note over Washer: 3-step wash: rinse, steam sanitize (85°C), hot air dry
+    Washer->>DB: 13. Transition cup to CLEAN_ON_SHELF
+    Washer->>CleanTopic: 14. Announce cup availability
+
+    Customer->>API: 15. Query GET /analytics
+    StreamEngine->>API: 16. Serve sub-millisecond in-memory stream metrics
+    API-->>Customer: 17. Live 5-min tumbling windows & KPI telemetry
 ```
 
-### Why this design?
-- **No Topic Explosion**: Avoids creating a topic per customer (a Kafka anti-pattern).
-- **Key-Based Routing & Correlation**: Orders and ready announcements share the same `order_id` as the message key.
-- **Backpressure & Decoupling**: If 10 customers arrive at once, Kafka safely buffers their orders. The solo waiter works at their own steady pace.
+---
+
+## 🍵 Finite Ceramic Cup State Machine
+
+To prevent plastic waste, the café operates with a finite pool of 12 numbered ceramic cups (`CUP-01` to `CUP-12`). Cup allocations and state transitions are strictly governed:
+
+```mermaid
+stateDiagram-v2
+    [*] --> CLEAN_ON_SHELF: Seeded in DB (12 Cups)
+    CLEAN_ON_SHELF --> IN_BREWING: Barista claims cup (FOR UPDATE SKIP LOCKED)
+    IN_BREWING --> WITH_CUSTOMER: Barista serves drink to diner
+    WITH_CUSTOMER --> IN_DISHWASHER: Customer returns cup / Auto-busser clears table
+    IN_DISHWASHER --> CLEAN_ON_SHELF: High-temp sanitization cycle completes (dishwasher.py)
+```
+
+### Concurrency & Anti-Deadlock Protections
+- **`FOR UPDATE SKIP LOCKED`**: Concurrent baristas and workers atomically claim clean cups without lock contention or double-allocation.
+- **Automated Table Busser (`dishwasher.py`)**: Automatically collects abandoned cups from tables after an inactivity timeout (`CUP_BUSSER_TIMEOUT_SECONDS=30`) so cups never starve the queue.
+- **Kitchen Expediter (`waiter.py`)**: If all cups are occupied and an order is waiting, the barista triggers an urgent expedited wash pass to break deadlocks.
+
+---
+
+## 📊 Real-Time Kafka Streaming Analytics (Quix Streams)
+
+High-traffic dashboards running heavy PostgreSQL aggregation queries (`generate_series`, `GROUP BY`, `SUM`) suffer from table locks and query latency. 
+
+**MatchaPubSub** integrates **Quix Streams (3.26)** in [`stream_analytics.py`](stream_analytics.py) to provide:
+- **Tumbling 5-Minute Window Buckets**: Real-time timeseries aggregation over the past 60 minutes.
+- **Live Popular Creations Leaderboard**: Running order volume and revenue per menu item.
+- **Rolling Prep Velocity**: Tracks preparation durations between `matcha-orders` and `matcha-ready`.
+- **In-Memory Materialization**: Zero database queries required for the live `/analytics` telemetry view, with seamless fallback to PostgreSQL when needed.
+
+---
+
+## 🏰 Attack on Titan Mess Hall Web Experience
+
+The web application ([`static/index.html`](static/index.html)) provides a live, interactive visualization of the **Survey Corps Mess Hall**:
+- **12-Seat Dining Table**: Authentic Attack on Titan characters (Eren, Mikasa, Armin, Levi, etc.) dynamically occupy seats.
+- **Real-Time Soundscapes**: Layered authentic audio including ambient dining chatter, ceramic dishware clinking, steam hissing, and bamboo chasen whisking.
+- **Seat-by-Seat Ordering**: Order custom beverages and pastries directly for any specific seat.
+- **Scout Rush Simulator**: Dispatches multi-cadet rushes clamped strictly to available physical seats to prevent standing diners.
+- **Live Cup Inventory Bar**: Visual shelf showing status distribution across clean, brewing, with customer, and dishwasher.
 
 ---
 
 ## 🚀 Quick Start Guide
 
-### 1. Start Kafka & Kafka UI
-Make sure Docker Desktop is running, then:
+### 1. Prerequisites
+- [Docker Desktop](https://www.docker.com/) (running)
+- Python 3.11+
+- `kubectl` (optional, for Kubernetes deployments)
+
+---
+
+### 2. Start Kafka & PostgreSQL
+Start Kafka in KRaft mode, Kafka UI, and PostgreSQL 16:
 ```bash
 docker compose up -d
 ```
-> View the cluster and live topics at **[http://localhost:8080](http://localhost:8080)**.
 
-### 2. Activate Python Environment
+| Service | Port / URL | Description |
+| :--- | :--- | :--- |
+| **Kafka Broker** | `localhost:9092` | Apache Kafka 3.7 (KRaft mode, no Zookeeper) |
+| **Kafka UI** | **[http://localhost:8080](http://localhost:8080)** | Cluster management, topic inspection & consumer groups |
+| **PostgreSQL** | `localhost:5432` | Database (`matcha_cafe`, user: `barista`, password: `matchapassword`) |
+
+---
+
+### 3. Set Up Python Environment
 ```bash
+python3 -m venv .venv
 source .venv/bin/activate
-# If not yet installed: pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ---
 
-## 🎮 Running the Simulation
+### 4. Running the Café Microservices
 
-For the best experience, open two or three terminal windows side-by-side:
+For the full simulation experience, run the core services in separate terminal windows:
 
-### Terminal 1: Start the Solo Waiter
+#### Terminal 1: Start the Order API & Web Server
 ```bash
+source .venv/bin/activate
+uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+```
+> Open **[http://localhost:8000](http://localhost:8000)** in your browser to explore the Mess Hall web interface!
+
+#### Terminal 2: Start the Solo Waiter (Barista)
+```bash
+source .venv/bin/activate
 python3 waiter.py
 ```
-*(The waiter is ready at the counter, waiting for incoming tickets!)*
+*(Consumes tickets from `matcha-orders`, prepares drinks, claims cups, and announces completions on `matcha-ready`)*
 
-### Terminal 2: Order as a Customer
-Run the interactive menu:
+#### Terminal 3: Start the Dishwasher & Auto-Busser
+```bash
+source .venv/bin/activate
+python3 dishwasher.py
+```
+*(Listens to `matcha-cup-returns`, sanitizes dirty cups, and runs the background table busser)*
+
+---
+
+## 🎮 Customer Ordering & Simulations
+
+### Order via Web Interface
+Navigate to **[http://localhost:8000](http://localhost:8000)** to place orders with the visual menu tray or trigger the **"Simulate Scout Rush"** button.
+
+### Order via CLI Client (`client.py`)
+Run the interactive terminal prompt:
 ```bash
 python3 client.py
 ```
-Or place a direct order:
+
+Or place a direct, non-interactive order:
 ```bash
-python3 client.py --name "Maya" --drink "Iced Ceremonial Matcha Latte" --milk "Oat Milk" --sweetness "25%"
+python3 client.py --name "Levi Ackerman" --drink "Hot Uji Matcha Latte" --milk "Oat Milk" --sweetness "0% (Unsweetened)"
 ```
 
-### Terminal 3 (Optional): Simulate a Morning Rush Hour
-Want to test the waiter under pressure? Spawn multiple customers simultaneously:
+### Morning Rush Simulator (`rush.py`)
+Simulate a concurrent rush of customers entering the café simultaneously:
 ```bash
 python3 rush.py --count 4
 ```
-Watch the customers place orders at once, wait at the counter, and observe the solo waiter prepare each drink in sequence!
 
----
-
-## 📂 Project Structure
-
-| File | Description |
-| :--- | :--- |
-| **`docker-compose.yml`** | Kafka broker (KRaft mode) + Kafka UI dashboard + PostgreSQL 16 database |
-| **`init_db.sql`** | Database schema initialization (`products`, `customers`, `orders`) |
-| **`db.py`** | PostgreSQL database layer: real-time order logging, dynamic preference updates |
-| **`dashboard.py`** | Terminal UI: live analytics of products, revenue, and customer preferences |
-| **`waiter.py`** | Solo barista worker: consumes orders, brews matcha, records sales to DB, publishes ready notifications |
-| **`client.py`** | Customer CLI: places order, listens to pickup counter, matches `order_id` key |
-| **`rush.py`** | Concurrent multi-customer simulator to test queueing and backpressure |
-| **`k8s/`** | Kubernetes manifests (`waiter-deployment.yaml`, `customer-cronjob.yaml`, `cafe-configmap.yaml`) |
-| **`requirements.txt`** | Python dependencies (`confluent-kafka`, `psycopg2-binary`) |
-
----
-
-## 📊 Live Database & Analytics Dashboard
-
-Whenever a drink is brewed and served by the barista, the database transaction performs real-time updates:
-1. Records the completed transaction into the `orders` table.
-2. Upserts customer profile in the `customers` table (increments total spend, total order count, and updates favorite drink / milk / sweetness preferences dynamically based on order history).
-
-View the live café menu, customer loyalty profiles, and revenue at any time:
+### Terminal Analytics Dashboard (`dashboard.py`)
+Inspect the live PostgreSQL database state, customer loyalty rankings, and cup tracking in the terminal:
 ```bash
 python3 dashboard.py
 ```
 
 ---
 
-## 🧠 Key Architecture Concepts Demonstrated
+## 📂 Project Structure
 
-1. **Consumer-Transform-Producer**: The waiter consumes from `matcha-orders`, transforms the state (brewing), and produces to `matcha-ready`.
-2. **Real-time Database Transactions**: Every completed order is immediately committed to PostgreSQL, maintaining live customer lifetime value and preference analytics.
-3. **Manual Offset Commit**: The waiter only commits offsets *after* a drink is successfully prepared, recorded in PostgreSQL, and announced, guaranteeing zero lost orders.
-4. **Kubernetes Integration**: Baristas run as scalable Deployments and regular commuters run as scheduled CronJobs communicating seamlessly with Kafka and PostgreSQL.
+| Path | Description |
+| :--- | :--- |
+| **`api.py`** | FastAPI service: REST endpoints, Kafka producer, static asset serving, and telemetry health probes |
+| **`stream_analytics.py`** | Quix Streams real-time analytics engine (tumbling windows, rolling prep time, popular drinks) |
+| **`waiter.py`** | Solo barista worker: consumes orders, manages cup claiming, whisks matcha, and notifies completions |
+| **`dishwasher.py`** | Automated dishwasher daemon and background table busser for cup sanitization and return |
+| **`client.py`** | Interactive and direct CLI customer client supporting HTTP API and direct Kafka fallback |
+| **`rush.py`** | Concurrent multi-process customer generator for backpressure and queue testing |
+| **`dashboard.py`** | Terminal dashboard displaying live database tables, revenue totals, and cup statuses |
+| **`db.py`** | Database access layer: thread-safe connection pooling, atomic cup state machine, customer loyalty |
+| **`init_db.sql`** | PostgreSQL schema definition (`products`, `orders`, `customers`, `cups`, `cup_audit_log`) |
+| **`static/`** | Web application frontend: HTML5 UI, Attack on Titan character portraits, and multi-layer soundscapes |
+| **`docker-compose.yml`** | Docker Compose definitions for Kafka (KRaft), Kafka UI, and PostgreSQL 16 |
+| **`Dockerfile`** | Container image definition for café microservices |
+| **`k8s/`** | Kubernetes manifests (`api-deployment.yaml`, `waiter-deployment.yaml`, `dishwasher-deployment.yaml`, etc.) |
+| **`requirements.txt`** | Python dependencies (`confluent-kafka`, `fastapi`, `uvicorn`, `quixstreams`, `psycopg2-binary`, etc.) |
+
+---
+
+## ☸️ Kubernetes Deployment
+
+All café microservices are containerized and orchestratable via Kubernetes:
+
+```bash
+# 1. Apply shared configuration
+kubectl apply -f k8s/cafe-configmap.yaml
+
+# 2. Deploy microservices
+kubectl apply -f k8s/api-deployment.yaml
+kubectl apply -f k8s/waiter-deployment.yaml
+kubectl apply -f k8s/dishwasher-deployment.yaml
+
+# 3. Simulate customer traffic via Kubernetes Jobs & CronJobs
+kubectl apply -f k8s/customer-job.yaml       # Batch customer rush (Job)
+kubectl apply -f k8s/customer-cronjob.yaml   # Periodic commuter arrivals (CronJob)
+```
+
+See [`k8s/README.md`](k8s/README.md) for detailed Kubernetes walkthroughs and scaling experiments.
+
+---
+
+## 🧠 Key Engineering Principles Demonstrated
+
+1. **Decoupled Asynchronous Microservices**: The web frontend, barista worker, dishwasher, and streaming telemetry operate independently via Kafka topics (`matcha-orders`, `matcha-ready`, `matcha-cup-returns`, `matcha-cup-clean`).
+2. **Key-Based Message Correlation**: Orders and ready announcements share identical `order_id` message keys, preventing partition mismatch and topic explosion.
+3. **Finite Resource Lifecycle Management**: Reusable ceramic cups are modeled as a discrete state machine with PostgreSQL `FOR UPDATE SKIP LOCKED` concurrency and automated busser recovery.
+4. **Hybrid Persistence & Streaming Architecture**: Combines ACID-compliant relational storage in PostgreSQL for transactional loyalty with stateful stream processing in Quix Streams for zero-latency operational metrics.
+5. **Resilient Offset Commit Semantics**: Consumers commit Kafka offsets strictly after the corresponding physical preparation or sanitization step completes, guaranteeing at-least-once processing.
