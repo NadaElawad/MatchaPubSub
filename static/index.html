@@ -2564,6 +2564,11 @@
           <p class="analytics-subtitle" id="analyticsSubtitle">
             Aggregated audit events, cup lifecycle telemetry & consumer throughput across timeframes
           </p>
+          <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+            <span class="stream-source-pill" id="streamSourceBadge" style="display: none; font-size: 0.74rem; font-weight: 700; color: #15803D; background: #DCFCE7; border: 1px solid #86EFAC; padding: 3px 10px; border-radius: 9999px;">
+              ⚡ Powered by Kafka Streams (Quix Streams)
+            </span>
+          </div>
         </div>
 
         <!-- Minutes, Hours, Days Switcher -->
@@ -4141,6 +4146,16 @@
         // Update Subtitles & Headers
         const subTitle = document.getElementById("analyticsSubtitle");
         if (subTitle) subTitle.innerText = `Aggregated audit events, cup lifecycle telemetry & consumer throughput for: ${data.time_label}`;
+
+        const streamBadge = document.getElementById("streamSourceBadge");
+        if (streamBadge) {
+          if (data.stream_powered) {
+            streamBadge.style.display = "inline-flex";
+            streamBadge.innerHTML = `⚡ <strong>Engine:</strong> ${escapeHtml(data.data_source || 'Kafka Streams (Quix Streams)')}`;
+          } else {
+            streamBadge.style.display = "none";
+          }
+        }
 
         const chartLabel = document.getElementById("chartTimeLabel");
         if (chartLabel) chartLabel.innerText = data.time_label;

@@ -32,6 +32,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import db
+from stream_analytics import stream_analytics_engine
 
 # ---------------------------------------------------------------------------
 # Logging Configuration
@@ -107,7 +108,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     else:
         logger.warning("PostgreSQL database health check failed on startup.")
 
+    # Initialize real-time Quix Streams analytics engine
+    try:
+        stream_analytics_engine.start()
+        logger.info("Quix Streams real-time analytics engine started.")
+    except Exception as exc:
+        logger.warning("Could not initialize Quix Streams analytics: %s", exc)
+
     yield
+
+    try:
+        stream_analytics_engine.stop()
+    except Exception as exc:
+        logger.debug("Error stopping stream analytics: %s", exc)
 
     if kafka_producer:
         logger.info("Flushing Kafka producer message queue before shutdown...")
@@ -575,9 +588,36 @@ def get_restaurant_realtime_state() -> dict[str, Any]:
 def get_analytics(
     timeframe: str = Query("minutes", description="Aggregation timeframe: minutes, hours, or days"),
 ) -> dict[str, Any]:
-    """Returns aggregated timeseries breakdown, popular items, and cup audit logs."""
+    """Returns aggregated timeseries breakdown, popular items, and cup audit logs.
+
+    When timeframe is 'minutes' and the real-time Quix Streams engine is ready,
+    serves live aggregated metrics, running popular items, and tumbling 5-minute
+    windows directly from in-memory stream state. Otherwise falls back to PostgreSQL.
+    """
     if timeframe not in ("minutes", "hours", "days"):
         timeframe = "minutes"
+
+    # Real-Time Kafka Streaming Analytics (Minutes View)
+    if timeframe == "minutes" and stream_analytics_engine.is_ready():
+        try:
+            stream_metrics = stream_analytics_engine.get_realtime_metrics()
+            db_fallback = db.get_analytics_breakdown("minutes")
+
+            # Blend streaming analytics with DB cup circulation & audit log
+            return {
+                **db_fallback,
+                "total_orders": stream_metrics["total_orders"],
+                "total_revenue": stream_metrics["total_revenue"],
+                "avg_prep_time_sec": stream_metrics["avg_prep_time_sec"],
+                "popular_items": stream_metrics["popular_items"],
+                "chart_series": stream_metrics["chart_series"],
+                "time_label": stream_metrics["time_label"],
+                "data_source": "Kafka Streams (Quix Streams 3.26)",
+                "stream_powered": True,
+            }
+        except Exception as exc:
+            logger.warning("Quix Streams analytics retrieval failed, using DB: %s", exc)
+
     return db.get_analytics_breakdown(timeframe)
 
 
