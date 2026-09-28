@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matcha-dishwasher
+  labels:
+    app: matcha-dishwasher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matcha-dishwasher
+  template:
+    metadata:
+      labels:
+        app: matcha-dishwasher
+    spec:
+      containers:
+        - name: dishwasher
+          image: matcha-cafe:v14
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-u", "dishwasher.py"]
+          envFrom:
+            - configMapRef:
+                name: cafe-config
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

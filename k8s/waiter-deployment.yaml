@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matcha-waiter
+  labels:
+    app: matcha-waiter
+spec:
+  replicas: 1 # Start with 1 Solo Waiter
+  selector:
+    matchLabels:
+      app: matcha-waiter
+  template:
+    metadata:
+      labels:
+        app: matcha-waiter
+    spec:
+      containers:
+        - name: waiter
+          image: matcha-cafe:v14
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-u", "waiter.py"]
+          envFrom:
+            - configMapRef:
+                name: cafe-config
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

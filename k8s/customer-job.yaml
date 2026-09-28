@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: customer-rush
+  labels:
+    app: customer-rush
+spec:
+  completions: 3  # 3 total customers served
+  parallelism: 3  # 3 customers arrive simultaneously
+  backoffLimit: 2 # Allow up to 2 retries if needed
+  template:
+    metadata:
+      labels:
+        app: matcha-customer
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: customer
+          image: matcha-cafe:v2
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-u", "client.py"]
+          envFrom:
+            - configMapRef:
+                name: cafe-config
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

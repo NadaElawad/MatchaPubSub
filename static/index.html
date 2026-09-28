@@ -1,0 +1,4415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matcha Café Kyoto 抹茶 | Freshly Whisked Ceremonial Tea</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-cream: #F8F9F5;
+      --bg-card: #FFFFFF;
+      --primary-dark: #1E3F20;
+      --matcha: #2E5A27;
+      --matcha-light: #527947;
+      --matcha-froth: #EBF3E8;
+      --matcha-subtle: #F2F6F0;
+      --accent-coral: #C85A5A;
+      --accent-gold: #C28E38;
+      --text-main: #1A241C;
+      --text-muted: #5E6D62;
+      --text-light: #8E9E93;
+      --border: #E3E9DF;
+      --border-focus: #2E5A27;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 2px 8px rgba(30, 63, 32, 0.04);
+      --shadow-md: 0 8px 24px rgba(30, 63, 32, 0.06);
+      --shadow-lg: 0 16px 40px rgba(30, 63, 32, 0.1);
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-cream);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--primary-dark);
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--matcha), var(--primary-dark));
+      color: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(46, 90, 39, 0.25);
+    }
+
+    .brand-title h1 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .brand-title p {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--matcha-light);
+      font-weight: 600;
+    }
+
+    .nav-stats {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+
+    .badge-barista {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--matcha-froth);
+      color: var(--matcha);
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      border: 1px solid rgba(46, 90, 39, 0.12);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #34A853;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.7);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(52, 168, 83, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 168, 83, 0); }
+    }
+
+    .order-tray-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary-dark);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1200px;
+      margin: 24px auto 60px;
+      padding: 0 24px;
+    }
+
+    .view-panel {
+      display: none;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    .view-panel.active {
+      display: block;
+    }
+
+    #viewCafeCounter.active {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      #viewCafeCounter.active {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    /* Section Cards */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      transition: border-color 0.2s;
+    }
+
+    .card-header {
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-step-badge {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background: var(--matcha-froth);
+      color: var(--matcha);
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 24px;
+      text-align: center;
+      border-radius: 50%;
+    }
+
+    .card-subtitle {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Customer Picker */
+    .customer-input-group {
+      margin-bottom: 24px;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .name-input-wrapper {
+      position: relative;
+    }
+
+    .name-input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-main);
+      background: var(--bg-cream);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .name-input:focus {
+      background: white;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 4px rgba(46, 90, 39, 0.1);
+    }
+
+
+    .loyalty-banner {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #FDF9F0;
+      border: 1px solid #EFE0C2;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      color: #7A5515;
+    }
+
+    /* Menu Selector */
+    .menu-category-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .category-tab {
+      background: none;
+      border: none;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .category-tab:hover {
+      color: var(--primary-dark);
+      background: var(--matcha-subtle);
+    }
+
+    .category-tab.active {
+      background: var(--primary-dark);
+      color: white;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 600px) {
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .menu-item-card {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      cursor: pointer;
+      background: white;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .menu-item-card:hover {
+      border-color: var(--matcha-light);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .menu-item-card.selected {
+      border-color: var(--matcha);
+      background: #FAFCF9;
+      box-shadow: 0 0 0 2px var(--matcha);
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+
+    .item-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      line-height: 1.3;
+    }
+
+    .item-price {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--matcha);
+      background: var(--matcha-froth);
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      margin-left: 8px;
+    }
+
+    .item-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .item-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+    }
+
+    .item-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-light);
+    }
+
+    .item-radio {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .menu-item-card.selected .item-radio {
+      border-color: var(--matcha);
+      background: var(--matcha);
+    }
+
+    .menu-item-card.selected .item-radio::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    /* Customization Options */
+    .customization-section {
+      background: var(--bg-cream);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .option-group {
+      margin-bottom: 18px;
+    }
+
+    .option-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .pill-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .pill-btn {
+      background: white;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pill-btn:hover {
+      border-color: var(--matcha);
+      background: var(--matcha-subtle);
+    }
+
+    .pill-btn.active {
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+      color: white;
+      font-weight: 600;
+    }
+
+    /* Right Column: Checkout & Live Tracking */
+    .order-summary-card {
+      position: sticky;
+      top: 90px;
+    }
+
+    .ticket-header {
+      border-bottom: 2px dashed var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ticket-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .ticket-body {
+      margin-bottom: 20px;
+    }
+
+    .ticket-line {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+
+    .ticket-line.total {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 14px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .ticket-line .label {
+      color: var(--text-muted);
+    }
+
+    .ticket-line .value {
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .cup-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #F4F7F2;
+      border: 1px solid #D6E3D1;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      color: var(--primary-dark);
+      margin-bottom: 20px;
+    }
+
+    .btn-whisk {
+      width: 100%;
+      background: linear-gradient(135deg, var(--matcha), var(--primary-dark));
+      color: white;
+      border: none;
+      padding: 16px 24px;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(30, 63, 32, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .btn-whisk:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(30, 63, 32, 0.35);
+    }
+
+    .btn-whisk:disabled {
+      background: #B0BEB2;
+      box-shadow: none;
+      transform: none;
+      cursor: not-allowed;
+    }
+
+    /* Live Tracking Card */
+    .live-tracker-box {
+      display: none;
+      margin-top: 24px;
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--matcha-light);
+      padding: 24px;
+      box-shadow: var(--shadow-lg);
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tracker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .tracker-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: var(--matcha-froth);
+      color: var(--matcha);
+    }
+
+    .tracker-stepper {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 24px 0 28px;
+    }
+
+    .tracker-stepper::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      right: 20px;
+      height: 3px;
+      background: var(--border);
+      z-index: 1;
+    }
+
+    .stepper-line-fill {
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      height: 3px;
+      background: var(--matcha);
+      z-index: 2;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+
+    .step-item {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid var(--border);
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+
+    .step-item.active .step-circle {
+      border-color: var(--matcha);
+      background: var(--matcha);
+      color: white;
+      box-shadow: 0 0 0 4px rgba(46, 90, 39, 0.2);
+    }
+
+    .step-item.completed .step-circle {
+      border-color: var(--matcha);
+      background: var(--matcha);
+      color: white;
+    }
+
+    .step-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .step-item.active .step-label {
+      color: var(--matcha);
+      font-weight: 700;
+    }
+
+    .tracker-cup-banner {
+      background: #F8F5FF;
+      border: 1px solid #E6D9FF;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .cup-avatar {
+      width: 44px;
+      height: 44px;
+      background: #7B2CBF;
+      color: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .cup-meta h4 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #4A154B;
+    }
+
+    .cup-meta p {
+      font-size: 0.78rem;
+      color: #6C5874;
+    }
+
+    /* Cart and Item Row Styles */
+    .btn-add-tray {
+      width: 100%;
+      margin-top: 18px;
+      background: white;
+      color: var(--matcha);
+      border: 1.5px solid var(--matcha);
+      padding: 13px 20px;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-add-tray:hover {
+      background: var(--matcha);
+      color: white;
+      box-shadow: 0 4px 14px rgba(46, 90, 39, 0.2);
+    }
+
+    .btn-add-tray:disabled {
+      background: #F4F6F2;
+      border-color: var(--border);
+      color: var(--text-light);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .tray-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .tray-item:last-child {
+      border-bottom: none;
+    }
+
+    .tray-item-info {
+      flex: 1;
+    }
+
+    .tray-item-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .tray-item-meta {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .tray-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qty-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: white;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-dark);
+      transition: all 0.15s;
+    }
+
+    .qty-btn:hover {
+      background: var(--matcha-subtle);
+      border-color: var(--matcha);
+      color: var(--matcha);
+    }
+
+    .tray-item-qty {
+      font-size: 0.82rem;
+      font-weight: 700;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    .tray-item-price {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--matcha);
+      min-width: 50px;
+      text-align: right;
+    }
+
+    .tray-item-del {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 2px 4px;
+      transition: color 0.15s;
+      line-height: 1;
+    }
+
+    .tray-item-del:hover {
+      color: var(--accent-coral);
+    }
+
+    .tray-empty-box {
+      padding: 28px 14px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.84rem;
+      background: #FAFCF9;
+      border-radius: var(--radius-sm);
+      border: 1.5px dashed var(--border);
+    }
+
+    .btn-new-order {
+      width: 100%;
+      padding: 13px;
+      border-radius: var(--radius-md);
+      background: white;
+      border: 1.5px solid var(--matcha);
+      color: var(--matcha);
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-new-order:hover {
+      background: var(--matcha-subtle);
+    }
+
+    /* Top Navigation Tabs */
+    .main-nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-cream);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      padding: 7px 16px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .nav-tab:hover {
+      color: var(--primary-dark);
+      background: rgba(46, 90, 39, 0.08);
+    }
+
+    .nav-tab.active {
+      background: var(--matcha);
+      color: white;
+      box-shadow: 0 2px 8px rgba(46, 90, 39, 0.25);
+    }
+
+    .live-dot-pulse {
+      width: 7px;
+      height: 7px;
+      background: #4ade80;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulseDot 1.6s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========================================================
+       ATTACK ON TITAN: 12-SEAT MESS HALL CHAMBER
+       ======================================================== */
+    .mess-hall-chamber {
+      background: linear-gradient(180deg, #181A1F 0%, #20242D 50%, #15171B 100%);
+      border: 2.5px solid #4A331E;
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+      color: #EDE8DE;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mess-hall-chamber::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 50% 25%, rgba(200, 160, 89, 0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .aot-banner-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1.5px solid rgba(226, 195, 123, 0.2);
+    }
+
+    .aot-title-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .aot-insignia {
+      width: 48px;
+      height: 48px;
+      background: #1C3D2E;
+      border: 2px solid #C5A059;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .aot-main-title {
+      font-family: 'Cinzel', Georgia, serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.06em;
+      color: #F4D06F;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    }
+
+    .aot-sub-title {
+      font-size: 0.8rem;
+      color: #B8B0A2;
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+
+    .aot-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .aot-btn {
+      background: linear-gradient(135deg, #2D6A4F, #1B4332);
+      border: 1px solid #C5A059;
+      color: #FFF;
+      padding: 9px 18px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .aot-btn:hover {
+      background: linear-gradient(135deg, #388261, #245741);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .aot-btn.btn-rush {
+      background: linear-gradient(135deg, #9B2226, #671417);
+      border-color: #E2C37B;
+    }
+
+    .aot-btn.btn-rush:hover {
+      background: linear-gradient(135deg, #AE2012, #7D181B);
+    }
+
+    .seats-row {
+      margin-bottom: 16px;
+    }
+
+    .seats-row.south-row {
+      margin-top: 16px;
+      margin-bottom: 26px;
+    }
+
+    .seats-row-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #C5A059;
+      margin-bottom: 10px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .seats-row-label::before, .seats-row-label::after {
+      content: "";
+      width: 60px;
+      height: 1px;
+      background: rgba(197, 160, 89, 0.35);
+    }
+
+    .seats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 992px) {
+      .seats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .seats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .seat-card {
+      background: rgba(28, 32, 40, 0.9);
+      border: 1.5px solid rgba(197, 160, 89, 0.3);
+      border-radius: var(--radius-md);
+      padding: 12px 10px;
+      text-align: center;
+      transition: all 0.25s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .seat-card:hover {
+      border-color: #F4D06F;
+      transform: translateY(-3px);
+      background: rgba(38, 44, 56, 0.95);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .seat-card.active-drinker {
+      border-color: #4ade80;
+      box-shadow: 0 0 16px rgba(74, 222, 128, 0.25);
+    }
+
+    .seat-card.active-preparing {
+      border-color: #f59e0b;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.28);
+    }
+
+    .seat-avatar-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2.5px solid #C5A059;
+      overflow: hidden;
+      margin-bottom: 8px;
+      position: relative;
+      background: #111;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .seat-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .seat-num-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      background: #C5A059;
+      color: #111;
+      font-size: 0.65rem;
+      font-weight: 800;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .seat-char-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #FBF8F1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .seat-char-title {
+      font-size: 0.68rem;
+      color: #C0B7A8;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .seat-status-pill {
+      margin-top: 8px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.68rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #A0AAB2;
+    }
+
+    .seat-status-pill.status-drinking {
+      background: rgba(46, 125, 50, 0.35);
+      color: #86EFAC;
+      border: 1px solid rgba(134, 239, 172, 0.3);
+    }
+
+    .seat-status-pill.status-preparing {
+      background: rgba(245, 158, 11, 0.3);
+      color: #FCD34D;
+      border: 1px solid rgba(252, 211, 77, 0.3);
+    }
+
+    .seat-cup-indicator {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: #F4D06F;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .seat-action-btn {
+      margin-top: 8px;
+      padding: 3px 10px;
+      background: rgba(197, 160, 89, 0.15);
+      border: 1px solid #C5A059;
+      color: #F4D06F;
+      font-size: 0.68rem;
+      font-weight: 700;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .seat-action-btn:hover {
+      background: #C5A059;
+      color: #111;
+    }
+
+    /* The Grand Dining Table */
+    .grand-table {
+      background: linear-gradient(180deg, #442916 0%, #321D0E 50%, #221308 100%);
+      border: 3.5px solid #6E4627;
+      border-radius: 14px;
+      padding: 22px 20px;
+      position: relative;
+      box-shadow: inset 0 2px 14px rgba(255, 255, 255, 0.12), 0 14px 36px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+
+    .table-emblem-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .wings-svg {
+      width: 48px;
+      height: 58px;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+    }
+
+    .table-title {
+      font-family: 'Cinzel', serif;
+      font-size: 0.76rem;
+      letter-spacing: 0.22em;
+      color: #E2C37B;
+      text-transform: uppercase;
+      margin-top: 8px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+    }
+
+    .table-cups-row {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed rgba(197, 160, 89, 0.35);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .table-cup-slot {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(197, 160, 89, 0.35);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      color: #E2C37B;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .table-cup-slot.active-cup {
+      background: rgba(46, 90, 39, 0.55);
+      border-color: #4ade80;
+      color: #FFF;
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
+    }
+
+    .steam-anim {
+      display: inline-block;
+      animation: steamWaft 2s infinite ease-in-out;
+    }
+
+    @keyframes steamWaft {
+      0%, 100% { transform: translateY(0) scale(1); opacity: 0.7; }
+      50% { transform: translateY(-4px) scale(1.2); opacity: 1; }
+    }
+
+    .stations-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .stations-grid { grid-template-columns: 1fr; }
+    }
+
+    .station-card {
+      background: rgba(22, 26, 34, 0.92);
+      border: 1.5px solid rgba(197, 160, 89, 0.25);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .station-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .station-badge {
+      background: #1C3D2E;
+      color: #A3E635;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid #A3E635;
+    }
+
+    .station-badge.cleaning-badge {
+      background: #1E3A5F;
+      color: #93C5FD;
+      border-color: #60A5FA;
+    }
+
+    .cup-tags-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .cup-chip-mini {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      color: #E2C37B;
+    }
+
+    /* Dialogue Quote Toast */
+    .quote-toast {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #181A1F;
+      border: 2px solid #C5A059;
+      color: #FBF8F1;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      z-index: 100;
+      max-width: 360px;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    /* ========================================================
+       LOG ANALYTICS & TIME MACHINE STYLES
+       ======================================================== */
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .analytics-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .analytics-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .timeframe-pills {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-cream);
+      border: 1.5px solid var(--border);
+      padding: 4px;
+      border-radius: var(--radius-full);
+    }
+
+    .timeframe-btn {
+      background: none;
+      border: none;
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .timeframe-btn.active {
+      background: var(--primary-dark);
+      color: white;
+      box-shadow: 0 2px 8px rgba(30, 63, 32, 0.2);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 992px) {
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .kpi-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 14px;
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+
+    .kpi-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .kpi-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin: 6px 0 2px;
+    }
+
+    .kpi-sub {
+      font-size: 0.72rem;
+      color: var(--text-light);
+    }
+
+    .analytics-columns {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .analytics-columns { grid-template-columns: 1fr; }
+    }
+
+    .analytics-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .badge-time {
+      background: var(--matcha-froth);
+      color: var(--matcha);
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Interactive CSS Chart */
+    .chart-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 200px;
+      padding: 30px 6px 8px 6px;
+      border-bottom: 2px solid var(--border);
+      position: relative;
+      background: linear-gradient(to bottom, 
+        transparent 0%, 
+        transparent calc(25% - 1px), rgba(0,0,0,0.03) 25%, transparent calc(25% + 1px),
+        transparent calc(50% - 1px), rgba(0,0,0,0.03) 50%, transparent calc(50% + 1px),
+        transparent calc(75% - 1px), rgba(0,0,0,0.03) 75%, transparent calc(75% + 1px)
+      );
+      overflow-x: hidden;
+      overflow-y: hidden;
+    }
+
+    .chart-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1 1 0;
+      min-width: 0;
+      height: 100%;
+      justify-content: flex-end;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .chart-pill {
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #2E5A27;
+      background: #EBF3E8;
+      border: 1px solid #C5E1A5;
+      border-radius: 8px;
+      padding: 1px 4px;
+      margin-bottom: 4px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      max-width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .chart-pill-empty {
+      font-size: 0.75rem;
+      color: #C0C8BF;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+
+    .chart-bar {
+      width: 100%;
+      max-width: 28px;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s, transform 0.2s;
+      position: relative;
+    }
+
+    .chart-bar.has-orders {
+      background: linear-gradient(180deg, #6B9B5C 0%, #2E5A27 100%);
+      box-shadow: 0 2px 6px rgba(46, 90, 39, 0.2);
+    }
+
+    .chart-bar.no-orders {
+      background: #DCE3DB;
+      height: 4px !important;
+      border-radius: 2px;
+    }
+
+    .chart-bar-wrap:hover .chart-bar.has-orders {
+      background: linear-gradient(180deg, #81B96F 0%, #1E3F20 100%);
+      box-shadow: 0 4px 12px rgba(46, 90, 39, 0.35);
+      transform: scaleY(1.03);
+      transform-origin: bottom;
+    }
+
+    .chart-bar-wrap:hover .chart-pill {
+      background: #2E5A27;
+      color: #FFFFFF;
+      transform: translateY(-2px);
+    }
+
+    .chart-bar-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 6px;
+      white-space: nowrap;
+      text-align: center;
+      width: 100%;
+    }
+
+    .chart-floating-tooltip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 99999;
+      background: rgba(20, 32, 22, 0.96);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(129, 185, 111, 0.4);
+      color: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      transition: opacity 0.12s ease-out;
+      display: none;
+      opacity: 0;
+      line-height: 1.45;
+    }
+
+    .audit-table-wrapper {
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      text-align: left;
+    }
+
+    .audit-table th {
+      background: #FAFBF9;
+      padding: 10px 14px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .audit-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #EDF2EB;
+      color: var(--text-main);
+    }
+
+    .status-pill-mini {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .status-pill-mini.clean { background: #EBF3E8; color: #2E5A27; }
+    .status-pill-mini.brewing { background: #FEF3C7; color: #92400E; }
+    .status-pill-mini.customer { background: #E0E7FF; color: #3730A3; }
+    .status-pill-mini.dishwasher { background: #FCE7F3; color: #9D174D; }
+
+    .customer-leaderboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .customer-leaderboard-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .customer-leaderboard-grid { grid-template-columns: 1fr; }
+    }
+
+    .leaderboard-item {
+      background: #FAFBF9;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 24px;
+      font-size: 0.82rem;
+      color: var(--text-light);
+    }
+
+    /* 2D Attack on Titan Dining Hall Styles */
+    .mess-hall-chamber-clean {
+      background: #171b21;
+      border: 1.5px solid #3c2a1c;
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      color: #EDE8DE;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .hall-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(197, 160, 89, 0.25);
+      margin-bottom: 20px;
+    }
+
+    .hall-crest-icon {
+      font-size: 26px;
+      background: #242b35;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid #C5A059;
+    }
+
+    .hall-title {
+      font-family: 'Cinzel', Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #F4D06F;
+      margin: 0;
+    }
+
+    .hall-subtitle {
+      font-size: 0.76rem;
+      color: #A0AAB5;
+      margin-top: 2px;
+    }
+
+    .hall-status-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hall-occupancy-pill {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      background: rgba(46, 90, 39, 0.35);
+      color: #A3E635;
+      border: 1px solid rgba(163, 230, 53, 0.4);
+    }
+
+    .btn-refresh-hall {
+      background: #232a34;
+      border: 1px solid #4a5568;
+      color: #EDE8DE;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-refresh-hall:hover {
+      background: #2e3744;
+    }
+
+    /* Sound Effects Toggle Button */
+    .btn-sound-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .btn-sound-toggle:hover {
+      background: var(--matcha-froth);
+      border-color: var(--matcha);
+      color: var(--matcha);
+      transform: translateY(-1px);
+    }
+
+    .btn-sound-toggle.muted {
+      color: var(--text-muted);
+      opacity: 0.75;
+      background: rgba(0, 0, 0, 0.04);
+      border-color: #d1d5db;
+    }
+
+    .btn-sound-toggle.ambiance-active {
+      border-color: #2E5A27;
+      background: #EBF3E8;
+      color: #1E3F20;
+      box-shadow: 0 0 10px rgba(46, 90, 39, 0.25);
+    }
+
+    /* Scout Rush Simulator Button */
+    .btn-scout-rush {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #1b3822 0%, #2f613c 100%);
+      color: #EDE8DE;
+      border: 1px solid rgba(163, 230, 53, 0.5);
+      border-radius: var(--radius-sm);
+      padding: 6px 14px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(46, 90, 39, 0.25), 0 0 10px rgba(163, 230, 53, 0.15);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .btn-scout-rush:hover:not(:disabled) {
+      background: linear-gradient(135deg, #24492d 0%, #3a754a 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(46, 90, 39, 0.35), 0 0 16px rgba(163, 230, 53, 0.3);
+      border-color: rgba(163, 230, 53, 0.85);
+      color: #A3E635;
+    }
+
+    .btn-scout-rush:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn-scout-rush:disabled,
+    .btn-scout-rush.btn-rush-full {
+      opacity: 0.60;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-scout-rush .rush-icon {
+      font-size: 0.88rem;
+      display: inline-block;
+    }
+
+    .btn-scout-rush .rush-icon.spin {
+      animation: iconSpin 0.9s infinite linear;
+    }
+
+    @keyframes iconSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Dining Table Scene */
+    .dining-table-scene {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin: 0 auto;
+      max-width: 1060px;
+    }
+
+    /* 6-column grid for chairs (Zero overlap between adjacent seats) */
+    .chairs-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      width: 100%;
+      align-items: end;
+    }
+
+    .south-chairs-row {
+      align-items: start;
+    }
+
+    .seat-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+      gap: 6px;
+    }
+
+    /* Seat Dialogue / Info Bubble */
+    .seat-bubble-card {
+      width: 100%;
+      box-sizing: border-box;
+      background: #FFFFFF;
+      color: #1A241C;
+      border-radius: 9px;
+      padding: 7px 5px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      border: 1px solid #D1D5DB;
+      position: relative;
+    }
+
+    .bubble-cust-name {
+      font-weight: 700;
+      font-size: 0.74rem;
+      color: #1E3F20;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
+    .bubble-item {
+      font-size: 0.65rem;
+      color: #4B5563;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
+    .bubble-action {
+      font-size: 0.62rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 2px 5px;
+      margin-top: 3px;
+      display: inline-block;
+      line-height: 1.2;
+    }
+
+    .bubble-action.ready { background: #D1FAE5; color: #065F46; }
+    .bubble-action.preparing { background: #DBEAFE; color: #1E40AF; }
+    .bubble-action.pending { background: #FEF3C7; color: #92400E; }
+
+    .bubble-timer {
+      font-size: 0.62rem;
+      color: #6B7280;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .bubble-arrow-down {
+      width: 0; height: 0;
+      margin: 0 auto;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #FFFFFF;
+      position: absolute;
+      bottom: -5px;
+      left: calc(50% - 5px);
+    }
+
+    .bubble-arrow-up {
+      width: 0; height: 0;
+      margin: 0 auto;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 5px solid #FFFFFF;
+      position: absolute;
+      top: -5px;
+      left: calc(50% - 5px);
+    }
+
+    .seat-bubble-empty {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(30, 36, 44, 0.45);
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 6px 4px;
+      text-align: center;
+      color: #8C96A0;
+      font-size: 0.66rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    /* Chair Graphics */
+    .chair-graphic {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .empty-chair {
+      background: #231810;
+      border: 2px solid #54331d;
+      border-radius: 12px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    .chair-backrest {
+      width: 38px;
+      height: 10px;
+      background: #54331d;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+
+    .chair-seat-cushion {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #B8966E;
+    }
+
+    .chair-avatar-img {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      border: 2.5px solid #C5A059;
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      background: #1C232B;
+    }
+
+    .chair-seat-number {
+      position: absolute;
+      bottom: -4px;
+      right: -2px;
+      background: #C5A059;
+      color: #1C150A;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 10px;
+      border: 1px solid #FFFFFF;
+    }
+
+    /* Central Grand Dining Table */
+    .central-grand-table {
+      background: linear-gradient(180deg, #442918 0%, #2b170c 100%);
+      border: 3px solid #6b4324;
+      border-radius: 14px;
+      padding: 12px 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .table-crest-badge {
+      text-align: center;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed rgba(197, 160, 89, 0.35);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .crest-text {
+      font-family: 'Cinzel', Georgia, serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #E2C37B;
+    }
+
+    .table-placemats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+
+    .table-placemat {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+    }
+
+    .wood-coaster {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(197, 160, 89, 0.4);
+      background: rgba(0,0,0,0.25);
+    }
+
+    .steaming-cup, .artisan-plate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(197, 160, 89, 0.5);
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .item-emoji {
+      font-size: 18px;
+    }
+
+    .steam-float {
+      position: absolute;
+      top: -6px;
+      right: 4px;
+      font-size: 10px;
+      color: #A3E635;
+      animation: steamAnim 1.8s infinite ease-in-out;
+    }
+
+    @keyframes steamAnim {
+      0% { transform: translateY(0); opacity: 0.3; }
+      50% { transform: translateY(-3px); opacity: 1; }
+      100% { transform: translateY(-6px); opacity: 0; }
+    }
+
+    /* Waiter Bar Station (Roomy, perfectly readable, no text cutoff!) */
+    .waiter-bar-station {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: #11151a;
+      border: 1.5px solid #3c2a1c;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-top: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .waiter-avatar-box {
+      width: 68px;
+      height: 68px;
+      flex-shrink: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .waiter-avatar-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2.5px solid #2E5A27;
+      object-fit: cover;
+      background: #1C232B;
+    }
+
+    .waiter-badge {
+      background: #2E5A27;
+      color: #FFFFFF;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+      margin-top: -6px;
+      white-space: nowrap;
+    }
+
+    .waiter-speech-bubble {
+      flex: 1;
+      min-width: 0;
+      background: rgba(30, 44, 32, 0.85);
+      border: 1.5px solid #C5A059;
+      border-radius: 12px;
+      padding: 12px 18px;
+      line-height: 1.45;
+    }
+
+    .waiter-bubble-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .waiter-name {
+      color: #F4D06F;
+      font-size: 0.92rem;
+    }
+
+    .waiter-role-tag {
+      font-size: 0.70rem;
+      color: #93C5FD;
+      background: rgba(147, 197, 253, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .waiter-clean-tag {
+      font-size: 0.70rem;
+      color: #A3E635;
+      background: rgba(163, 230, 53, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .waiter-quote {
+      color: #EDE8DE;
+      font-size: 0.82rem;
+      margin: 4px 0 8px;
+      word-wrap: break-word;
+      line-height: 1.45;
+    }
+
+    .waiter-station-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.72rem;
+      color: #A0AAB5;
+      padding-top: 6px;
+      border-top: 1px solid rgba(197, 160, 89, 0.2);
+    }
+
+    /* Dine-in / Take-away toggle */
+    .dining-toggle {
+      display: flex;
+      gap: 0;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .dining-toggle button {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: var(--bg-cream);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .dining-toggle button.active {
+      background: var(--matcha);
+      color: white;
+    }
+
+    .dining-toggle button:first-child { border-right: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <div class="brand-logo">🍵</div>
+        <div class="brand-title">
+          <h1>Matcha Café Kyoto</h1>
+          <p>Authentic Ceremonial Bar</p>
+        </div>
+      </a>
+
+      <!-- Navigation Tabs -->
+      <nav class="main-nav-tabs">
+        <button class="nav-tab active" id="tabBtnCounter" onclick="switchView('counter')">
+          <span>🍵 Café Ordering</span>
+        </button>
+        <button class="nav-tab" id="tabBtnMessHall" onclick="switchView('messhall')">
+          <span>⚔️ Scout Mess Hall (12 Seats)</span>
+          <span class="live-dot-pulse"></span>
+        </button>
+        <button class="nav-tab" id="tabBtnAnalytics" onclick="switchView('analytics')">
+          <span>📊 Log Analytics</span>
+        </button>
+      </nav>
+
+      <div class="nav-stats">
+        <div class="order-tray-badge" id="headerTrayBadge" onclick="switchView('counter')">
+          <span>🛒</span>
+          <span id="headerTrayText">Tray: Empty</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Experience -->
+  <main>
+    <!-- View 1: Customer Ordering Interface -->
+    <div id="viewCafeCounter" class="view-panel active">
+      <!-- Left Column: Menu & Customization -->
+      <section>
+      <div class="card">
+        <!-- 1. Customer Selection (Required) -->
+        <div class="customer-input-group">
+          <label class="input-label" for="customerName">
+            <span class="card-step-badge">1</span> Your Name <span style="color: #D32F2F; font-weight: 700;">*</span>
+          </label>
+          <div class="name-input-wrapper">
+            <input type="text" id="customerName" class="name-input" placeholder="Enter your name (e.g. Maya, Kenji...)" value="" required autocomplete="name">
+          </div>
+          <div class="loyalty-banner" id="loyaltyBanner">
+            ⭐ <strong id="loyaltyName">Customer</strong> is a Café Regular (<span id="loyaltyOrders">0</span> orders • Favorite: <span id="loyaltyFav">-</span>)
+          </div>
+        </div>
+
+        <!-- 2. Menu Catalog -->
+        <div class="card-header" style="margin-top: 16px;">
+          <div>
+            <h2 class="card-title"><span class="card-step-badge">2</span> Select Your Matcha Creation</h2>
+            <p class="card-subtitle">Freshly whisked stone-ground Uji ceremonial matcha</p>
+          </div>
+        </div>
+
+        <div class="menu-category-tabs">
+          <button class="category-tab active" onclick="filterCategory('All')">All Items</button>
+          <button class="category-tab" onclick="filterCategory('Drink')">Drinks</button>
+          <button class="category-tab" onclick="filterCategory('Dessert')">Desserts</button>
+          <button class="category-tab" onclick="filterCategory('Pastry')">Pastries</button>
+        </div>
+
+        <div class="menu-grid" id="menuGrid">
+          <!-- Populated dynamically from /menu -->
+          <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-muted);">
+            Loading live menu from café database...
+          </div>
+        </div>
+
+        <!-- 3. Customizations (Drinks Only) -->
+        <div id="personalizeContainer">
+          <div class="card-header" style="margin-top: 16px;">
+            <div>
+              <h2 class="card-title"><span class="card-step-badge">3</span> Personalize Your Cup</h2>
+              <p class="card-subtitle">Tailored milk and sweetness preferences</p>
+            </div>
+          </div>
+
+          <div class="customization-section">
+            <div class="option-group">
+              <label class="input-label">Milk Selection</label>
+              <div class="pill-selector" id="milkSelector">
+                <button class="pill-btn active" data-milk="Oat Milk" onclick="selectMilk('Oat Milk')">Oat Milk</button>
+                <button class="pill-btn" data-milk="Almond Milk" onclick="selectMilk('Almond Milk')">Almond Milk</button>
+                <button class="pill-btn" data-milk="Whole Milk" onclick="selectMilk('Whole Milk')">Whole Milk</button>
+                <button class="pill-btn" data-milk="Soy Milk" onclick="selectMilk('Soy Milk')">Soy Milk</button>
+                <button class="pill-btn" data-milk="None / Black" onclick="selectMilk('None / Black')">None / Black</button>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <label class="input-label">Sweetness Level</label>
+              <div class="pill-selector" id="sweetnessSelector">
+                <button class="pill-btn" data-sweetness="0% (Unsweetened)" onclick="selectSweetness('0% (Unsweetened)')">0% Unsweetened</button>
+                <button class="pill-btn" data-sweetness="25%" onclick="selectSweetness('25%')">25% Subtle</button>
+                <button class="pill-btn active" data-sweetness="50%" onclick="selectSweetness('50%')">50% Balanced</button>
+                <button class="pill-btn" data-sweetness="75%" onclick="selectSweetness('75%')">75% Sweet</button>
+                <button class="pill-btn" data-sweetness="100%" onclick="selectSweetness('100%')">100% Traditional</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alternate Non-Drink Note (Pastries & Desserts) -->
+        <div id="noCustomizationNote" style="display: none; margin-top: 20px; padding: 18px 22px; background: #FAFBF9; border: 1.5px dashed var(--border); border-radius: var(--radius-md); text-align: left;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: var(--matcha-froth); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">🍽️</div>
+            <div>
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-dark);">Artisan Plate Presentation</h4>
+              <p id="noCustomizationText" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">This item is prepared fresh and served on a handcrafted ceramic plate. No drink cup or milk customization needed.</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-add-tray" id="btnAddToTray" onclick="addToTray()">
+          <span id="btnAddToTrayText">+ Add to Order Tray</span>
+          <span id="addToTrayPrice">($6.50)</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Column: Order Tray & Live Progress Tracker -->
+    <aside>
+      <div class="card order-summary-card">
+        <div id="trayCardView">
+          <div class="ticket-header">
+            <div>
+              <span class="ticket-title">Your Order Tray</span>
+              <p style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">Customer: <strong id="summaryCustomer">—</strong></p>
+            </div>
+            <span id="trayItemCountBadge" style="font-size: 0.78rem; font-weight: 700; background: var(--matcha-froth); color: var(--matcha); padding: 3px 10px; border-radius: var(--radius-full);">0 items</span>
+          </div>
+
+          <div class="ticket-body" id="trayItemsContainer">
+            <div class="tray-empty-box" id="trayEmptyNotice">
+              <span>🍵 Your tray is empty.</span>
+              <p style="margin-top: 4px; font-size: 0.78rem; color: var(--text-light);">Select creations from the menu and click "+ Add to Order Tray".</p>
+            </div>
+          </div>
+
+          <div class="ticket-line total" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <span>Order Total</span>
+            <span id="summaryTotal">$0.00</span>
+          </div>
+
+          <div style="margin: 14px 0 14px; padding: 10px 14px; background: #FAFBF9; border: 1px solid #E5EBE1; border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+            <span>🍵</span>
+            <span>Served in artisanal handcrafted ceramics & Mino-ware plates.</span>
+          </div>
+
+          <!-- Dining Experience Selection: Dine-in vs Take Away -->
+          <div style="margin-bottom: 16px;">
+            <label class="input-label" style="margin-bottom: 6px;">Dining Experience</label>
+            <div class="dining-toggle" id="diningToggle">
+              <button type="button" class="active" id="btnDineIn" onclick="selectDiningOption('dine_in')">
+                🍽️ Dine-in (12 Seats)
+              </button>
+              <button type="button" id="btnTakeAway" onclick="selectDiningOption('take_away')">
+                🛍️ Take Away (To-Go)
+              </button>
+            </div>
+            <p id="diningOptionNote" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">
+              ✨ Dine-in guests take a seat at the Scout Mess Hall table.
+            </p>
+          </div>
+
+          <button class="btn-whisk" id="submitOrderBtn" onclick="submitOrder()" disabled>
+            <span id="submitOrderBtnText">Place Order ($0.00)</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <!-- Live Order Tracker Modal / Box -->
+        <div class="live-tracker-box" id="trackerBox">
+          <div class="tracker-header">
+            <div>
+              <span class="tracker-badge" id="trackerStatusBadge">Pending</span>
+              <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-top: 4px;" id="trackerOrderId">ORD-XXXX</h3>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Barista</span>
+              <p style="font-weight: 700; font-size: 0.88rem; color: var(--matcha);" id="trackerBarista">Kaito</p>
+            </div>
+          </div>
+
+          <!-- Stepper -->
+          <div class="tracker-stepper">
+            <div class="stepper-line-fill" id="stepperLine"></div>
+            <div class="step-item active" id="step1">
+              <div class="step-circle">1</div>
+              <span class="step-label">Received</span>
+            </div>
+            <div class="step-item" id="step2">
+              <div class="step-circle">2</div>
+              <span class="step-label" id="step2Label">Preparing</span>
+            </div>
+            <div class="step-item" id="step3">
+              <div class="step-circle">3</div>
+              <span class="step-label" id="step3Label">Ready</span>
+            </div>
+          </div>
+
+          <!-- Items in Tracker -->
+          <div id="trackerItemsContainer" style="margin-bottom: 16px;"></div>
+
+          <!-- Ready Hospitality Banner -->
+          <div id="trackerReadyBanner" style="display: none; padding: 14px; background: #F2F7F0; border: 1px solid #D6E5D1; border-radius: var(--radius-md); font-size: 0.82rem; color: #1E3F20; margin-bottom: 16px;">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <span style="font-size: 20px;">✨</span>
+              <div>
+                <strong>Ready for Pickup at Counter!</strong>
+                <p style="color: #4A634E; margin-top: 2px;">Your order has been freshly prepared. Please sit back, relax, and enjoy your artisanal matcha experience.</p>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-new-order" id="btnNewOrder" style="display: none;" onclick="startNewOrder()">
+            + Place Another Order
+          </button>
+        </div>
+      </div>
+    </aside>
+    </div>
+
+    <!-- View 2: Scout Mess Hall (Attack on Titan 2D Dining Visualization) -->
+    <div id="viewMessHall" class="view-panel">
+      <div class="mess-hall-chamber-clean">
+        <!-- Top Banner -->
+        <div class="hall-header-bar">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="hall-crest-icon">⚔️</div>
+            <div>
+              <h2 class="hall-title">Wall Rose Scout Mess Hall • Grand Dining Table</h2>
+              <p class="hall-subtitle">12-Seat Live Dining Visualization • Dine-in guests take a seat as an AoT Scout (45s stay)</p>
+            </div>
+          </div>
+          <div class="hall-status-group">
+            <span class="hall-occupancy-pill" id="messHallOccupancy">0 / 12 Seats Occupied</span>
+            <button class="btn-scout-rush" id="btnScoutRush" onclick="triggerScoutRush(5)" title="Dispatch 5 Scouts to fill the dining table!">
+              <span class="rush-icon">⚡</span>
+              <span class="rush-label">Simulate Scout Rush!</span>
+            </button>
+            <button class="btn-refresh-hall" onclick="pollActiveDiners()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <!-- Dining Room Scene Container -->
+        <div class="dining-table-scene">
+          <!-- North Row: Chairs 1 - 6 -->
+          <div class="chairs-row north-chairs-row" id="northSeatsContainer">
+            <!-- Populated dynamically: 6 distinct non-overlapping columns -->
+          </div>
+
+          <!-- Central Grand Dining Table -->
+          <div class="central-grand-table">
+            <div class="table-crest-badge">
+              <span class="crest-wings">🛡️ ⚔️ 🛡️</span>
+              <span class="crest-text">THE GRAND SURVEY CORPS MESS TABLE • 12 DINING PLACES</span>
+              <span class="crest-wings">🛡️ ⚔️ 🛡️</span>
+            </div>
+            <!-- Table Placemats (Coasters & Cups / Plates) -->
+            <div class="table-placemats-grid" id="tablePlacematsGrid">
+              <!-- 12 placemats corresponding to seats 1..12 -->
+            </div>
+          </div>
+
+          <!-- South Row: Chairs 7 - 12 -->
+          <div class="chairs-row south-chairs-row" id="southSeatsContainer">
+            <!-- Populated dynamically: 6 distinct non-overlapping columns -->
+          </div>
+        </div>
+
+        <!-- Garrison Barista & Waiter Counter (Spacious, fully readable, zero text cutoff!) -->
+        <div class="waiter-bar-station">
+          <div class="waiter-avatar-box">
+            <img src="/images/characters/levi.webp" alt="Captain Levi" class="waiter-avatar-img" onerror="this.src='/images/characters/eren.webp';" />
+            <span class="waiter-badge">Head Waiter</span>
+          </div>
+          <div class="waiter-speech-bubble">
+            <div class="waiter-bubble-header">
+              <strong class="waiter-name">⚔️ Captain Levi</strong>
+              <span class="waiter-role-tag">Garrison Barista Station</span>
+              <span class="waiter-clean-tag">✨ 100% Spotless Inspection</span>
+            </div>
+            <p class="waiter-quote" id="waiterQuoteText">
+              "Welcome to Wall Rose Mess Hall. Keep this place spotless. Fresh ceremonial matcha is hand-whisked and artisan plates are served directly to your table."
+            </p>
+            <div class="waiter-station-meta">
+              <span class="meta-item" id="metaCupsCirculation">🍵 <strong>Ceramic Cups:</strong> 0 in circulation (12 clean on shelf)</span>
+              <span class="meta-item">⏱️ <strong>Table Limit:</strong> 45s Dine-In Stay</span>
+              <span class="meta-item" id="waiterActiveDuty">⚡ <strong>Status:</strong> Ready for service</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View 3: Log Analytics Dashboard (Minutes / Hours / Days breakdown) -->
+    <div id="viewAnalytics" class="view-panel">
+      <!-- Analytics Header with Timeframe Switcher -->
+      <div class="analytics-header">
+        <div>
+          <h2 class="analytics-title">Matcha PubSub System Log & Event Analytics</h2>
+          <p class="analytics-subtitle" id="analyticsSubtitle">
+            Aggregated audit events, cup lifecycle telemetry & consumer throughput across timeframes
+          </p>
+          <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+            <span class="stream-source-pill" id="streamSourceBadge" style="display: none; font-size: 0.74rem; font-weight: 700; color: #15803D; background: #DCFCE7; border: 1px solid #86EFAC; padding: 3px 10px; border-radius: 9999px;">
+              ⚡ Powered by Kafka Streams (Quix Streams)
+            </span>
+          </div>
+        </div>
+
+        <!-- Minutes, Hours, Days Switcher -->
+        <div class="timeframe-pills">
+          <button class="timeframe-btn active" id="btnTfMinutes" onclick="loadAnalytics('minutes')">
+            ⏱️ Past Minutes (60m)
+          </button>
+          <button class="timeframe-btn" id="btnTfHours" onclick="loadAnalytics('hours')">
+            🕒 Past Hours (24h)
+          </button>
+          <button class="timeframe-btn" id="btnTfDays" onclick="loadAnalytics('days')">
+            📅 Past Days (7d)
+          </button>
+        </div>
+      </div>
+
+      <!-- 6 KPI Stat Summary Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Orders</div>
+          <div class="kpi-value" id="kpiTotalOrders">0</div>
+          <div class="kpi-sub" id="kpiOrdersSub">Completed & active</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value" id="kpiTotalRevenue">$0.00</div>
+          <div class="kpi-sub">Gross sales</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Prep Duration</div>
+          <div class="kpi-value" id="kpiAvgPrep">0.0s</div>
+          <div class="kpi-sub">Barista fulfillment</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Orders</div>
+          <div class="kpi-value" id="kpiActiveOrders">0</div>
+          <div class="kpi-sub">In queue or brewing</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cups in Circulation</div>
+          <div class="kpi-value" id="kpiCirculationCups">0 / 12</div>
+          <div class="kpi-sub">With guests or brewing</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Sanitized on Shelf</div>
+          <div class="kpi-value" id="kpiCleanCups">12 / 12</div>
+          <div class="kpi-sub">Ready for service</div>
+        </div>
+      </div>
+
+      <!-- 2-Column Analytics Breakdown -->
+      <div class="analytics-columns">
+        <!-- Left Column: Timeseries Chart & Audit Log Event Stream -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Chart Card -->
+          <div class="analytics-card">
+            <div class="card-header-flex">
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark);">
+                  📈 Order Volume & Throughput
+                </h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;" id="chartTimeLabel">
+                  Timeseries breakdown
+                </p>
+              </div>
+              <span class="badge-time" id="chartTimeBadge">Live aggregation</span>
+            </div>
+
+            <!-- CSS Bar Chart Container -->
+            <div class="chart-container" id="timeseriesChart">
+              <!-- Dynamically populated bars -->
+            </div>
+          </div>
+
+          <!-- Cup Lifecycle Audit Log Stream Table -->
+          <div class="analytics-card">
+            <div class="card-header-flex">
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark);">
+                  📋 Cup Lifecycle Audit Events & Telemetry
+                </h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                  Real-time transition logs recorded in PostgreSQL from Kafka event topics
+                </p>
+              </div>
+              <input type="text" id="auditSearchInput" placeholder="Filter by cup, status or event..." 
+                     style="padding: 6px 12px; font-size: 0.78rem; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; width: 220px;"
+                     oninput="filterAuditLogs()" />
+            </div>
+
+            <div class="audit-table-wrapper">
+              <table class="audit-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Cup</th>
+                    <th>Previous Status</th>
+                    <th>New Status</th>
+                    <th>Trigger Event</th>
+                    <th>Order Ref</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                  <!-- Dynamically populated rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Top Creations & Customer Leaderboard -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- Top Popular Creations -->
+          <div class="analytics-card">
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 12px;">
+              🍵 Popular Matcha Creations
+            </h3>
+            <div id="popularItemsList" style="display: flex; flex-direction: column; gap: 10px;">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Top Customers Leaderboard -->
+          <div class="analytics-card">
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 12px;">
+              👑 Customer Loyalty Leaderboard
+            </h3>
+            <div id="customerLeaderboardList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Matcha PubSub System • Powered by Apache Kafka, PostgreSQL & FastAPI • Handcrafted with 🍵
+  </footer>
+
+  <!-- High-Fidelity Audio Elements (Native Media Engine & Dual Layer) -->
+  <audio id="audioBell" preload="auto">
+    <source src="/static/audio/bell.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/bell.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioFanfare" preload="auto">
+    <source src="/static/audio/fanfare.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/fanfare.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioWhisk" preload="auto">
+    <source src="/static/audio/whisk.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/whisk.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioClick" preload="auto">
+    <source src="/static/audio/click.m4a?v=2" type="audio/mp4">
+    <source src="/static/audio/click.wav?v=2" type="audio/wav">
+  </audio>
+  <audio id="audioAmbiance" loop preload="auto">
+    <source src="/static/audio/cafe_ambiance.m4a?v=3" type="audio/mp4">
+    <source src="/static/audio/cafe_ambiance.wav?v=3" type="audio/wav">
+  </audio>
+
+  <script>
+    /* ========================================================
+       HYBRID WEB AUDIO + HTML5 MEDIA ENGINE (BULLETPROOF)
+       ======================================================== */
+    const soundEnabled = true;
+    try {
+      localStorage.removeItem("matcha_sound_enabled");
+    } catch (_) {}
+    let currentDinerCount = 0;
+    let _cafeAudioCtx = null;
+    let ambianceMasterGain = null;
+    let ambianceNoiseNode = null;
+    let ambianceClinkTimer = null;
+
+    // Guaranteed singleton AudioContext management (resumed synchronously on gesture)
+    function getAudioContext() {
+      if (!_cafeAudioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          _cafeAudioCtx = new AudioContextClass();
+        }
+      }
+      if (_cafeAudioCtx && _cafeAudioCtx.state === 'suspended') {
+        _cafeAudioCtx.resume().catch(() => {});
+      }
+      return _cafeAudioCtx;
+    }
+
+    function ensureAudioContextRunning() {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        return ctx.resume();
+      }
+      return Promise.resolve();
+    }
+
+    // HTML5 media playback helper (safe against InvalidStateError & unhandled rejections)
+    function playHtmlAudio(id, volume = 1.0) {
+      try {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.readyState >= 1) {
+          el.currentTime = 0;
+        }
+        el.volume = Math.max(0, Math.min(1, volume));
+        const p = el.play();
+        if (p !== undefined) {
+          p.catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    function playHtmlAudioLoop(id, volume = 0.5) {
+      try {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.loop = true;
+        el.volume = Math.max(0, Math.min(1, volume));
+        if (el.paused) {
+          const p = el.play();
+          if (p !== undefined) {
+            p.catch(() => {});
+          }
+        }
+      } catch (e) {}
+    }
+
+    function pauseHtmlAudio(id) {
+      try {
+        const el = document.getElementById(id);
+        if (!el || el.paused) return;
+        el.pause();
+        if (el.readyState >= 1) {
+          el.currentTime = 0;
+        }
+      } catch (e) {}
+    }
+
+    // 1. Crystal Counter Service Bell (Harmonic E6 + B5 sine chime)
+    function playCounterBell() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioBell", 1.0);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const freqs = [1318.51, 987.77, 2637.02];
+        const amps = [0.25, 0.15, 0.05];
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(amps[idx], now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 1.6);
+        });
+      } catch (e) {}
+    }
+
+    // 2. Chasen Matcha Whisking (Bamboo chasen against ceramic bowl)
+    function playWhiskingSound() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioWhisk", 0.9);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const strokes = 4;
+        const strokeDur = 0.07;
+        const gap = 0.03;
+        for (let i = 0; i < strokes; i++) {
+          const strokeStart = now + (i * (strokeDur + gap));
+          const bufferSize = Math.max(128, Math.floor(ctx.sampleRate * strokeDur));
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let j = 0; j < bufferSize; j++) {
+            data[j] = (Math.random() * 2 - 1) * Math.sin(Math.PI * (j / bufferSize));
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(1300 + (i % 2 === 0 ? 250 : -200), strokeStart);
+          filter.Q.setValueAtTime(2.5, strokeStart);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.01, strokeStart);
+          gain.gain.linearRampToValueAtTime(0.24, strokeStart + (strokeDur * 0.4));
+          gain.gain.exponentialRampToValueAtTime(0.0001, strokeStart + strokeDur);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start(strokeStart);
+          noise.stop(strokeStart + strokeDur);
+        }
+      } catch (e) {}
+    }
+
+    // 3. Survey Corps Brass Fanfare (4-note triumphant brass blast)
+    function playScoutFanfare() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioFanfare", 1.0);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const notes = [
+          { freq: 392.00, start: 0.00, dur: 0.18 },
+          { freq: 523.25, start: 0.18, dur: 0.18 },
+          { freq: 659.25, start: 0.36, dur: 0.18 },
+          { freq: 783.99, start: 0.54, dur: 0.65 }
+        ];
+        notes.forEach(n => {
+          const noteStart = now + n.start;
+          const noteEnd = noteStart + n.dur;
+          const oscTri = ctx.createOscillator();
+          const oscSaw = ctx.createOscillator();
+          const filter = ctx.createBiquadFilter();
+          const gain = ctx.createGain();
+          oscTri.type = "triangle";
+          oscTri.frequency.setValueAtTime(n.freq, noteStart);
+          oscSaw.type = "sawtooth";
+          oscSaw.frequency.setValueAtTime(n.freq, noteStart);
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(1400, noteStart);
+          filter.frequency.exponentialRampToValueAtTime(850, noteEnd);
+          filter.Q.setValueAtTime(2.0, noteStart);
+          gain.gain.setValueAtTime(0.001, noteStart);
+          gain.gain.linearRampToValueAtTime(0.26, noteStart + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+          oscTri.connect(filter);
+          oscSaw.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          oscTri.start(noteStart);
+          oscSaw.start(noteStart);
+          oscTri.stop(noteEnd);
+          oscSaw.stop(noteEnd);
+        });
+      } catch (e) {}
+    }
+
+    // 4. Wooden Click (Traditional Japanese hyōshigi block)
+    function playWoodClick() {
+      if (!soundEnabled) return;
+      playHtmlAudio("audioClick", 0.8);
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(920, now);
+        osc.frequency.exponentialRampToValueAtTime(340, now + 0.035);
+        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.035);
+      } catch (e) {}
+    }
+
+    // 5. Authentic Kyoto Tea House & Café Soundscape
+    // Multi-layered field recording featuring: real customer talking/murmur, barista steam wand hissing, ceramic dishware clatter & spoon stirring
+    let ambianceBuffer = null;
+    let ambianceBufferSource = null;
+
+    async function loadAmbianceBuffer(ctx) {
+      if (ambianceBuffer) return ambianceBuffer;
+      try {
+        const res = await fetch("/static/audio/cafe_ambiance.m4a?v=3");
+        const ab = await res.arrayBuffer();
+        ambianceBuffer = await ctx.decodeAudioData(ab);
+        return ambianceBuffer;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function startCafeAmbiance(occupancy = 1) {
+      if (!soundEnabled) return;
+      // Dynamic volume scaling based on number of seated diners
+      const targetVol = Math.min(0.85, 0.40 + (occupancy * 0.035));
+
+      // 1. Play real multi-layer audio via HTML5 loop element (seamless & native)
+      playHtmlAudioLoop("audioAmbiance", targetVol);
+
+      // 2. Also run through Web Audio graph for high-fidelity hardware mixing
+      try {
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'running') {
+          if (!ambianceMasterGain) {
+            ambianceMasterGain = ctx.createGain();
+            ambianceMasterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+            ambianceMasterGain.connect(ctx.destination);
+          }
+          const now = ctx.currentTime;
+          ambianceMasterGain.gain.cancelScheduledValues(now);
+          ambianceMasterGain.gain.setValueAtTime(Math.max(0.0001, ambianceMasterGain.gain.value), now);
+          ambianceMasterGain.gain.linearRampToValueAtTime(targetVol * 0.6, now + 1.2);
+
+          if (!ambianceBufferSource) {
+            const buf = await loadAmbianceBuffer(ctx);
+            if (buf && !ambianceBufferSource && soundEnabled && currentDinerCount > 0) {
+              ambianceBufferSource = ctx.createBufferSource();
+              ambianceBufferSource.buffer = buf;
+              ambianceBufferSource.loop = true;
+              ambianceBufferSource.connect(ambianceMasterGain);
+              ambianceBufferSource.start(0);
+            }
+          }
+        }
+      } catch (e) {}
+
+      updateAudioToggleBtns();
+    }
+
+    function stopCafeAmbiance() {
+      // 1. Pause HTML5 audio
+      pauseHtmlAudio("audioAmbiance");
+
+      // 2. Smoothly fade out Web Audio gain
+      if (ambianceMasterGain && _cafeAudioCtx) {
+        try {
+          const now = _cafeAudioCtx.currentTime;
+          ambianceMasterGain.gain.cancelScheduledValues(now);
+          ambianceMasterGain.gain.setValueAtTime(ambianceMasterGain.gain.value, now);
+          ambianceMasterGain.gain.linearRampToValueAtTime(0.0001, now + 1.0);
+        } catch (e) {}
+      }
+
+      updateAudioToggleBtns();
+    }
+
+    function updateDinerAmbiance(occupancy) {
+      currentDinerCount = occupancy;
+      updateAudioToggleBtns();
+      if (occupancy > 0 && soundEnabled) {
+        startCafeAmbiance(occupancy);
+      } else {
+        stopCafeAmbiance();
+      }
+    }
+
+    function updateAudioToggleBtns() {
+      // Sound button removed from navigation; sound is permanently enabled
+    }
+
+    // Unlock audio context on any user interaction anywhere on page
+    function unlockAudioEngine() {
+      getAudioContext();
+      if (soundEnabled && currentDinerCount > 0) {
+        startCafeAmbiance(currentDinerCount);
+      }
+    }
+    ["click", "pointerdown", "touchstart", "keydown"].forEach(evt => {
+      window.addEventListener(evt, unlockAudioEngine, { passive: true });
+    });
+
+    // State
+    let products = [];
+    let selectedProduct = null;
+    let selectedMilk = "Oat Milk";
+    let selectedSweetness = "50%";
+    let tray = [];
+    let activeOrderId = null;
+    let trackingInterval = null;
+    let isOrderInProgress = false;
+    const MAX_DRINKS_PER_ORDER = 12;
+
+    // Load initial data
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchMenu();
+      updateAudioToggleBtns();
+      pollActiveDiners();
+
+      // Unlock AudioContext on first user gesture and resume ambiance if customers are dining
+      document.addEventListener("click", () => {
+        const ctx = getAudioContext();
+        if (ctx && currentDinerCount > 0 && soundEnabled) {
+          startCafeAmbiance(currentDinerCount);
+        }
+      }, { once: true });
+
+      // Customer name input listener (customer is required to enter their name)
+      const customerInput = document.getElementById("customerName");
+      if (customerInput) {
+        customerInput.value = "";
+        customerInput.addEventListener("input", (e) => {
+          const val = e.target.value.trim();
+          document.getElementById("summaryCustomer").innerText = val || "—";
+          if (val) {
+            checkCustomerLoyalty(val);
+          } else {
+            document.getElementById("loyaltyBanner").style.display = "none";
+          }
+        });
+      }
+
+      window.addEventListener("resize", () => {
+        const container = document.getElementById("threeDContainer");
+        if (container && threeCamera && threeRenderer) {
+          const width = container.clientWidth || 900;
+          const height = container.clientHeight || 520;
+          threeCamera.aspect = width / height;
+          threeCamera.updateProjectionMatrix();
+          threeRenderer.setSize(width, height);
+        }
+      });
+    });
+
+    async function fetchMenu() {
+      try {
+        const res = await fetch("/menu");
+        const data = await res.json();
+        products = data.products || [];
+        renderMenu(products);
+        if (products.length > 0) {
+          selectProduct(products[0]);
+        }
+      } catch (err) {
+        document.getElementById("menuGrid").innerHTML = `
+          <div style="grid-column: 1 / -1; color: var(--accent-coral); text-align: center; padding: 24px;">
+            Could not connect to Menu API. Please make sure api.py is running.
+          </div>`;
+      }
+    }
+
+    async function checkCustomerLoyalty(name) {
+      if (!name) return;
+      try {
+        const res = await fetch(`/customers/${encodeURIComponent(name)}`);
+        if (res.ok) {
+          const profile = await res.json();
+          document.getElementById("loyaltyBanner").style.display = "block";
+          document.getElementById("loyaltyName").innerText = profile.name;
+          document.getElementById("loyaltyOrders").innerText = profile.total_orders;
+          document.getElementById("loyaltyFav").innerText = profile.favorite_drink || "Ceremonial Matcha";
+        } else {
+          document.getElementById("loyaltyBanner").style.display = "none";
+        }
+      } catch (err) {
+        document.getElementById("loyaltyBanner").style.display = "none";
+      }
+    }
+
+    function renderMenu(items) {
+      const container = document.getElementById("menuGrid");
+      container.innerHTML = "";
+
+      items.forEach(item => {
+        const isSelected = selectedProduct && selectedProduct.id === item.id;
+        const card = document.createElement("div");
+        card.className = `menu-item-card ${isSelected ? 'selected' : ''}`;
+        card.onclick = () => selectProduct(item);
+
+        card.innerHTML = `
+          <div>
+            <div class="item-top">
+              <span class="item-name">${item.name}</span>
+              <span class="item-price">$${item.price.toFixed(2)}</span>
+            </div>
+            <p class="item-desc">${item.description || 'Traditional ceremonial grade matcha preparation.'}</p>
+          </div>
+          <div class="item-footer">
+            <span class="item-tag">${item.category}</span>
+            <div class="item-radio"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function getItemDisplayName(item) {
+      return item.drink_name || item.name || item.drink || "Matcha Creation";
+    }
+
+    function filterCategory(cat) {
+      document.querySelectorAll(".category-tab").forEach(tab => {
+        tab.classList.toggle("active", tab.innerText.toLowerCase().includes(cat.toLowerCase()));
+      });
+
+      let filtered = products;
+      if (cat !== "All") {
+        filtered = products.filter(p => p.category.toLowerCase() === cat.toLowerCase());
+      }
+      renderMenu(filtered);
+
+      // If the currently selected item is not in this newly filtered category,
+      // remove the selection so "Personalise your cup" and other drink-specific UI are cleanly removed
+      const isVisible = selectedProduct && filtered.some(p => p.id === selectedProduct.id);
+      if (!isVisible) {
+        clearProductSelection();
+      }
+    }
+
+    function clearProductSelection() {
+      selectedProduct = null;
+      document.querySelectorAll(".menu-item-card").forEach(c => c.classList.remove("selected"));
+      
+      const personalizeContainer = document.getElementById("personalizeContainer");
+      const noCustomizationNote = document.getElementById("noCustomizationNote");
+      const addToTrayBtn = document.getElementById("btnAddToTray");
+      const btnAddToTrayText = document.getElementById("btnAddToTrayText");
+      const addToTrayPrice = document.getElementById("addToTrayPrice");
+
+      if (personalizeContainer) personalizeContainer.style.display = "none";
+      if (noCustomizationNote) noCustomizationNote.style.display = "none";
+      if (addToTrayBtn) addToTrayBtn.disabled = true;
+      if (btnAddToTrayText) btnAddToTrayText.innerText = "Select an item from the menu";
+      if (addToTrayPrice) addToTrayPrice.innerText = "";
+    }
+
+    function selectProduct(product) {
+      selectedProduct = product;
+      document.querySelectorAll(".menu-item-card").forEach(c => {
+        const name = c.querySelector(".item-name").innerText;
+        c.classList.toggle("selected", name === product.name);
+      });
+
+      const isDrink = (product.category || "").toLowerCase() === "drink";
+      const personalizeContainer = document.getElementById("personalizeContainer");
+      const noCustomizationNote = document.getElementById("noCustomizationNote");
+      const addToTrayBtn = document.getElementById("btnAddToTray");
+      const btnAddToTrayText = document.getElementById("btnAddToTrayText");
+      const addToTrayPrice = document.getElementById("addToTrayPrice");
+
+      if (isOrderInProgress) {
+        if (addToTrayBtn) addToTrayBtn.disabled = true;
+        if (btnAddToTrayText) btnAddToTrayText.innerText = "Order in Preparation...";
+        if (addToTrayPrice) addToTrayPrice.innerText = "";
+      } else {
+        if (addToTrayBtn) addToTrayBtn.disabled = false;
+        if (btnAddToTrayText) btnAddToTrayText.innerText = "+ Add to Order Tray";
+        if (addToTrayPrice) {
+          addToTrayPrice.innerText = `($${product.price.toFixed(2)})`;
+        }
+      }
+
+      if (isDrink) {
+        personalizeContainer.style.display = "block";
+        if (noCustomizationNote) noCustomizationNote.style.display = "none";
+      } else {
+        personalizeContainer.style.display = "none";
+        if (noCustomizationNote) {
+          noCustomizationNote.style.display = "block";
+          const desc = product.category.toLowerCase() === "dessert"
+            ? "This dessert is served chilled in an artisanal glass dish. No drink cup or milk customization needed."
+            : "This pastry is freshly baked and served on a handcrafted Mino-ware ceramic plate. No drink cup or milk customization needed.";
+          document.getElementById("noCustomizationText").innerText = desc;
+        }
+      }
+    }
+
+    function selectMilk(milk) {
+      selectedMilk = milk;
+      document.querySelectorAll("#milkSelector .pill-btn").forEach(btn => {
+        const btnVal = btn.getAttribute("data-milk") || btn.innerText.trim();
+        btn.classList.toggle("active", btnVal === milk);
+      });
+    }
+
+    function selectSweetness(sweetness) {
+      selectedSweetness = sweetness;
+      document.querySelectorAll("#sweetnessSelector .pill-btn").forEach(btn => {
+        const btnVal = btn.getAttribute("data-sweetness") || btn.innerText.trim();
+        btn.classList.toggle("active", btnVal === sweetness);
+      });
+    }
+
+    function getTrayDrinkCount() {
+      return tray.reduce((sum, item) => {
+        const isDrink = (item.category || "").toLowerCase() === "drink" || !!item.milk;
+        return isDrink ? sum + item.quantity : sum;
+      }, 0);
+    }
+
+    // Tray Operations
+    function addToTray() {
+      if (isOrderInProgress) {
+        alert("Your order is currently being prepared. Please wait or click '+ Place Another Order' once it is ready.");
+        return;
+      }
+      if (!selectedProduct) return;
+
+      // If previous order is finished and tracker is still open, reset back to tray
+      const trackerBox = document.getElementById("trackerBox");
+      if (trackerBox && trackerBox.style.display !== "none") {
+        trackerBox.style.display = "none";
+        const trayView = document.getElementById("trayCardView");
+        if (trayView) trayView.style.display = "block";
+        tray = [];
+      }
+
+      const isDrink = (selectedProduct.category || "").toLowerCase() === "drink";
+      if (isDrink) {
+        const currentDrinkCount = getTrayDrinkCount();
+        if (currentDrinkCount + 1 > MAX_DRINKS_PER_ORDER) {
+          alert(`Our café has a maximum limit of ${MAX_DRINKS_PER_ORDER} dine-in drinks per order (matching our ${MAX_DRINKS_PER_ORDER} handcrafted ceramic cups).`);
+          return;
+        }
+      }
+
+      const milk = isDrink ? selectedMilk : null;
+      const sweetness = isDrink ? selectedSweetness : null;
+
+      // Check if existing line item matches (same product and customizations)
+      const existing = tray.find(item => 
+        item.id === selectedProduct.id && 
+        item.milk === milk && 
+        item.sweetness === sweetness
+      );
+
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        tray.push({
+          id: selectedProduct.id,
+          drink_name: selectedProduct.name,
+          category: selectedProduct.category,
+          price: selectedProduct.price,
+          milk: milk,
+          sweetness: sweetness,
+          quantity: 1
+        });
+      }
+
+      renderTray();
+
+      // Brief tactile button feedback
+      const btn = document.getElementById("btnAddToTray");
+      btn.style.transform = "scale(0.98)";
+      setTimeout(() => btn.style.transform = "", 150);
+    }
+
+    function updateQty(index, delta) {
+      if (isOrderInProgress || !tray[index]) return;
+      const item = tray[index];
+      const isDrink = (item.category || "").toLowerCase() === "drink" || !!item.milk;
+      if (delta > 0 && isDrink) {
+        const currentDrinkCount = getTrayDrinkCount();
+        if (currentDrinkCount + delta > MAX_DRINKS_PER_ORDER) {
+          alert(`Our café has a maximum limit of ${MAX_DRINKS_PER_ORDER} dine-in drinks per order (matching our ${MAX_DRINKS_PER_ORDER} handcrafted ceramic cups).`);
+          return;
+        }
+      }
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        tray.splice(index, 1);
+      }
+      renderTray();
+    }
+
+    function removeFromTray(index) {
+      if (isOrderInProgress || !tray[index]) return;
+      tray.splice(index, 1);
+      renderTray();
+    }
+
+    function renderTray() {
+      const container = document.getElementById("trayItemsContainer");
+      const badge = document.getElementById("trayItemCountBadge");
+      const headerTrayText = document.getElementById("headerTrayText");
+      const summaryTotal = document.getElementById("summaryTotal");
+      const submitBtn = document.getElementById("submitOrderBtn");
+      const submitBtnText = document.getElementById("submitOrderBtnText");
+
+      if (tray.length === 0) {
+        container.innerHTML = `
+          <div class="tray-empty-box" id="trayEmptyNotice">
+            <span>🍵 Your tray is empty.</span>
+            <p style="margin-top: 4px; font-size: 0.78rem; color: var(--text-light);">Select creations from the menu and click "+ Add to Order Tray".</p>
+          </div>
+        `;
+        badge.innerText = "0 items";
+        headerTrayText.innerText = "Tray: Empty";
+        summaryTotal.innerText = "$0.00";
+        submitBtn.disabled = true;
+        submitBtnText.innerText = "Place Order ($0.00)";
+        return;
+      }
+
+      const totalCount = tray.reduce((sum, i) => sum + i.quantity, 0);
+      const totalPrice = tray.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+      badge.innerText = `${totalCount} item${totalCount === 1 ? '' : 's'}`;
+      headerTrayText.innerText = `${totalCount} item${totalCount === 1 ? '' : 's'} ($${totalPrice.toFixed(2)})`;
+      summaryTotal.innerText = `$${totalPrice.toFixed(2)}`;
+      submitBtn.disabled = false;
+      submitBtnText.innerText = `Place Order ($${totalPrice.toFixed(2)})`;
+
+      container.innerHTML = tray.map((item, idx) => `
+        <div class="tray-item">
+          <div class="tray-item-info">
+            <div class="tray-item-title">${item.drink_name}</div>
+            <div class="tray-item-meta">${item.milk ? `${item.milk} • ${item.sweetness}` : (item.category === 'Dessert' ? 'Artisan Chilled Dish' : 'Ceramic Plate')}</div>
+          </div>
+          <div class="tray-item-actions">
+            <button class="qty-btn" onclick="updateQty(${idx}, -1)" title="Decrease">−</button>
+            <span class="tray-item-qty">${item.quantity}</span>
+            <button class="qty-btn" onclick="updateQty(${idx}, 1)" title="Increase">+</button>
+            <span class="tray-item-price">$${(item.price * item.quantity).toFixed(2)}</span>
+            <button class="tray-item-del" onclick="removeFromTray(${idx})" title="Remove">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Dining Experience: dine_in vs take_away
+    let selectedDiningOption = "dine_in";
+
+    function selectDiningOption(opt) {
+      selectedDiningOption = opt;
+      const btnIn = document.getElementById("btnDineIn");
+      const btnOut = document.getElementById("btnTakeAway");
+      const note = document.getElementById("diningOptionNote");
+      if (btnIn) btnIn.classList.toggle("active", opt === "dine_in");
+      if (btnOut) btnOut.classList.toggle("active", opt === "take_away");
+      if (note) {
+        note.innerText = opt === "dine_in"
+          ? "✨ Dine-in guests take a seat at the Scout Mess Hall table."
+          : "🛍️ Take-away orders are boxed and picked up directly at the counter.";
+      }
+    }
+
+    // Submit Order
+    async function submitOrder() {
+      if (tray.length === 0) return;
+
+      const customerInput = document.getElementById("customerName");
+      const customer = customerInput ? customerInput.value.trim() : "";
+      if (!customer) {
+        alert("Please enter your name before placing your order.");
+        if (customerInput) {
+          customerInput.focus();
+          customerInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
+      const submitBtn = document.getElementById("submitOrderBtn");
+      const submitBtnText = document.getElementById("submitOrderBtnText");
+
+      submitBtn.disabled = true;
+      submitBtnText.innerText = "Placing Order...";
+
+      try {
+        const payload = {
+          customer_name: customer,
+          dining_option: selectedDiningOption,
+          items: tray.map(item => ({
+            drink_name: item.drink_name,
+            milk: item.milk,
+            sweetness: item.sweetness,
+            quantity: item.quantity
+          }))
+        };
+
+        const res = await fetch("/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert(`Order failed: ${err.detail || "Server error"}`);
+          submitBtn.disabled = false;
+          renderTray();
+          return;
+        }
+
+        const data = await res.json();
+        activeOrderId = data.order_id;
+
+        // Button text while preparing
+        submitBtnText.innerText = "Whisking Order...";
+
+        // Trigger ambient sound effects
+        playWoodClick();
+        playWhiskingSound();
+
+        // Show live tracking box
+        showTracker(data);
+        startPollingOrder(activeOrderId);
+
+      } catch (err) {
+        alert("Failed to submit order: " + err.message);
+        submitBtn.disabled = false;
+        renderTray();
+      }
+    }
+
+    function renderTrackerItems(items) {
+      const itemsContainer = document.getElementById("trackerItemsContainer");
+      if (!itemsContainer) return;
+      const list = items && items.length > 0 ? items : tray;
+
+      itemsContainer.innerHTML = `
+        <div style="background: #FAFBF9; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 0.82rem;">
+          <div style="font-weight: 700; color: var(--primary-dark); margin-bottom: 6px;">Your Creations:</div>
+          ${list.map(item => {
+            const name = item.drink_name || item.name || item.drink || "Matcha Creation";
+            const qty = item.quantity || 1;
+            const price = item.price ? '$' + (item.price * qty).toFixed(2) : '';
+            const custom = item.milk ? `<small style="color: var(--text-muted);">(${item.milk}, ${item.sweetness})</small>` : '';
+            return `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text-main);">
+                <span>${qty}x <strong>${name}</strong> ${custom}</span>
+                <span style="font-weight: 600; color: var(--matcha);">${price}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function showTracker(order) {
+      isOrderInProgress = true;
+      // Hide the editable tray so the customer cannot edit an active order
+      const trayView = document.getElementById("trayCardView");
+      if (trayView) trayView.style.display = "none";
+
+      // Disable menu "+ Add to Order Tray" while order is being prepared
+      const addBtn = document.getElementById("btnAddToTray");
+      if (addBtn) {
+        addBtn.disabled = true;
+        document.getElementById("btnAddToTrayText").innerText = "Order in Preparation...";
+        document.getElementById("addToTrayPrice").innerText = "";
+      }
+
+      const box = document.getElementById("trackerBox");
+      box.style.display = "block";
+      document.getElementById("trackerOrderId").innerText = order.order_id;
+      document.getElementById("trackerStatusBadge").innerText = "Received";
+      document.getElementById("trackerStatusBadge").style.background = "#EBF3E8";
+      document.getElementById("trackerStatusBadge").style.color = "#2E5A27";
+      document.getElementById("trackerBarista").innerText = "Kaito";
+      document.getElementById("step2Label").innerText = "Preparing";
+      document.getElementById("trackerReadyBanner").style.display = "none";
+      document.getElementById("btnNewOrder").style.display = "none";
+
+      renderTrackerItems(order.items && order.items.length > 0 ? order.items : tray);
+
+      updateStepper(1);
+
+      // Smooth scroll into view
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function updateStepper(step) {
+      const line = document.getElementById("stepperLine");
+      if (step === 1) line.style.width = "0%";
+      if (step === 2) line.style.width = "50%";
+      if (step === 3) line.style.width = "100%";
+
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById(`step${i}`);
+        el.className = `step-item ${i === step ? 'active' : ''} ${i < step ? 'completed' : ''}`;
+      }
+    }
+
+    function startPollingOrder(orderId) {
+      if (trackingInterval) clearInterval(trackingInterval);
+      let errorCount = 0;
+
+      trackingInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/orders/${orderId}`);
+          if (!res.ok) {
+            errorCount++;
+            if (errorCount > 8) {
+              clearInterval(trackingInterval);
+              document.getElementById("trackerStatusBadge").innerText = "Order Received";
+              const submitBtn = document.getElementById("submitOrderBtn");
+              const submitBtnText = document.getElementById("submitOrderBtnText");
+              if (submitBtn) submitBtn.disabled = false;
+              if (submitBtnText) submitBtnText.innerText = "Place Another Order";
+            }
+            return;
+          }
+          errorCount = 0;
+          const order = await res.json();
+
+          if (order.prepared_by) {
+            document.getElementById("trackerBarista").innerText = order.prepared_by;
+          }
+
+          if (order.items && order.items.length > 0) {
+            renderTrackerItems(order.items);
+          }
+
+          if (order.status === "PENDING") {
+            updateStepper(1);
+            document.getElementById("trackerStatusBadge").innerText = "Order in Queue";
+            document.getElementById("trackerStatusBadge").style.background = "#EBF3E8";
+            document.getElementById("trackerStatusBadge").style.color = "#2E5A27";
+          } else if (order.status === "PREPARING") {
+            updateStepper(2);
+            document.getElementById("trackerStatusBadge").innerText = "Preparing Creations...";
+            document.getElementById("trackerStatusBadge").style.background = "#FEF3C7";
+            document.getElementById("trackerStatusBadge").style.color = "#92400E";
+          } else if (order.status === "READY") {
+            updateStepper(3);
+            playCounterBell();
+            document.getElementById("trackerStatusBadge").innerText = "Ready at Counter! ✨";
+            document.getElementById("trackerStatusBadge").style.background = "#DCFCE7";
+            document.getElementById("trackerStatusBadge").style.color = "#166534";
+
+            clearInterval(trackingInterval);
+
+            // Show pickup hospitality banner and button for placing another order
+            document.getElementById("trackerReadyBanner").style.display = "block";
+            document.getElementById("btnNewOrder").style.display = "block";
+
+            // Order delivered: unlock menu button and clear "Order in Preparation..."
+            isOrderInProgress = false;
+            const addBtn = document.getElementById("btnAddToTray");
+            const addBtnText = document.getElementById("btnAddToTrayText");
+            const addBtnPrice = document.getElementById("addToTrayPrice");
+            if (addBtn) addBtn.disabled = false;
+            if (addBtnText) addBtnText.innerText = "+ Add to Order Tray";
+            if (addBtnPrice && selectedProduct) {
+              addBtnPrice.innerText = `($${selectedProduct.price.toFixed(2)})`;
+            }
+          }
+        } catch (e) {
+          console.warn("Polling error:", e);
+        }
+      }, 1000);
+    }
+
+    function startNewOrder() {
+      isOrderInProgress = false;
+      // Restore editable tray
+      const trayView = document.getElementById("trayCardView");
+      if (trayView) trayView.style.display = "block";
+
+      const box = document.getElementById("trackerBox");
+      if (box) box.style.display = "none";
+
+      tray = [];
+      renderTray();
+
+      const addBtn = document.getElementById("btnAddToTray");
+      const addBtnText = document.getElementById("btnAddToTrayText");
+      const addBtnPrice = document.getElementById("addToTrayPrice");
+      if (addBtn) addBtn.disabled = false;
+      if (addBtnText) addBtnText.innerText = "+ Add to Order Tray";
+
+      filterCategory("All");
+      if (products.length > 0) {
+        selectProduct(products[0]);
+      }
+      const name = document.getElementById("customerName") ? document.getElementById("customerName").value.trim() : "";
+      if (name) {
+        checkCustomerLoyalty(name);
+        document.getElementById("summaryCustomer").innerText = name;
+      } else {
+        document.getElementById("summaryCustomer").innerText = "—";
+      }
+    }
+
+    /* ========================================================
+       ATTACK ON TITAN & ANALYTICS CLIENT-SIDE INTERACTIVITY
+       ======================================================== */
+    let currentView = "counter";
+    let messHallPollInterval = null;
+    let analyticsPollInterval = null;
+    let currentAnalyticsTimeframe = "minutes";
+    let rawAuditEvents = [];
+    let quoteToastTimer = null;
+
+    function switchView(viewName) {
+      currentView = viewName;
+
+      // Update Navigation Tabs
+      const tabCounter = document.getElementById("tabBtnCounter");
+      const tabMessHall = document.getElementById("tabBtnMessHall");
+      const tabAnalytics = document.getElementById("tabBtnAnalytics");
+
+      if (tabCounter) tabCounter.classList.toggle("active", viewName === "counter");
+      if (tabMessHall) tabMessHall.classList.toggle("active", viewName === "messhall");
+      if (tabAnalytics) tabAnalytics.classList.toggle("active", viewName === "analytics");
+
+      // Update View Panels
+      const viewCounter = document.getElementById("viewCafeCounter");
+      const viewMess = document.getElementById("viewMessHall");
+      const viewAna = document.getElementById("viewAnalytics");
+
+      if (viewCounter) viewCounter.classList.toggle("active", viewName === "counter");
+      if (viewMess) viewMess.classList.toggle("active", viewName === "messhall");
+      if (viewAna) viewAna.classList.toggle("active", viewName === "analytics");
+
+      // Polling Lifecycle Management
+      if (viewName === "messhall") {
+        pollActiveDiners();
+        if (!dinersPollInterval) {
+          dinersPollInterval = setInterval(pollActiveDiners, 1500);
+        }
+        if (analyticsPollInterval) {
+          clearInterval(analyticsPollInterval);
+          analyticsPollInterval = null;
+        }
+      } else if (viewName === "analytics") {
+        loadAnalytics(currentAnalyticsTimeframe);
+        if (!analyticsPollInterval) {
+          analyticsPollInterval = setInterval(() => loadAnalytics(currentAnalyticsTimeframe), 4000);
+        }
+        if (dinersPollInterval) clearInterval(dinersPollInterval);
+        dinersPollInterval = setInterval(pollActiveDiners, 4500);
+      } else {
+        // Counter view
+        if (analyticsPollInterval) {
+          clearInterval(analyticsPollInterval);
+          analyticsPollInterval = null;
+        }
+        if (dinersPollInterval) clearInterval(dinersPollInterval);
+        dinersPollInterval = setInterval(pollActiveDiners, 3500);
+      }
+    }
+
+    /* ========================================================
+       2D ATTACK ON TITAN MESS HALL (12-SEAT DINING VISUALIZATION)
+       ======================================================== */
+    let dinersPollInterval = null;
+
+    async function pollActiveDiners() {
+      try {
+        const res = await fetch("/restaurant/diners");
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const occupied = data.occupied_count || 0;
+        const total = data.total_seats || 12;
+        const available = Math.max(0, total - occupied);
+        window._availableSeats = available;
+
+        // Update occupancy badge
+        const occEl = document.getElementById("messHallOccupancy");
+        if (occEl) {
+          occEl.innerText = `${occupied} / ${total} Seats Occupied`;
+        }
+
+        // Dynamically update Simulate Scout Rush button based on physical seat availability
+        const rushBtn = document.getElementById("btnScoutRush");
+        if (rushBtn && !rushBtn.classList.contains("btn-loading")) {
+          const labelEl = rushBtn.querySelector(".rush-label");
+          if (available === 0) {
+            rushBtn.disabled = true;
+            rushBtn.classList.add("btn-rush-full");
+            if (labelEl) labelEl.innerText = "Table Full (12/12)";
+            rushBtn.title = "All 12 seats are currently occupied. Wait for cadets to finish dining.";
+          } else {
+            rushBtn.disabled = false;
+            rushBtn.classList.remove("btn-rush-full");
+            if (available < 5) {
+              if (labelEl) labelEl.innerText = `Simulate Rush (${available} left)`;
+              rushBtn.title = `Dispatch ${available} Scout${available > 1 ? 's' : ''} to fill remaining seats!`;
+            } else {
+              if (labelEl) labelEl.innerText = "Simulate Scout Rush!";
+              rushBtn.title = "Dispatch 5 Scouts to fill available dining seats!";
+            }
+          }
+        }
+
+        // Live Ambient Café Audio: update based on diners present
+        updateDinerAmbiance(occupied);
+
+        // Update live cup circulation
+        if (data.cups) {
+          const metaCups = document.getElementById("metaCupsCirculation");
+          if (metaCups) {
+            metaCups.innerHTML = `🍵 <strong>Ceramic Cups:</strong> ${data.cups.in_circulation} in circulation (${data.cups.clean_on_shelf} clean on shelf)`;
+          }
+        }
+
+        render2DSeats(data.seats || []);
+        render2DPlacemats(data.seats || []);
+      } catch (err) {
+        console.error("Diners polling error:", err);
+      }
+    }
+
+    function render2DSeats(seats) {
+      const northContainer = document.getElementById("northSeatsContainer");
+      const southContainer = document.getElementById("southSeatsContainer");
+      if (!northContainer || !southContainer) return;
+
+      const seatMap = {};
+      seats.forEach(s => { seatMap[s.seat_number] = s; });
+
+      // Render North Seats (1 to 6)
+      let northHtml = "";
+      for (let s = 1; s <= 6; s++) {
+        northHtml += buildSeatHtml(seatMap[s] || { seat_number: s, occupied: false }, "north");
+      }
+      northContainer.innerHTML = northHtml;
+
+      // Render South Seats (7 to 12)
+      let southHtml = "";
+      for (let s = 7; s <= 12; s++) {
+        southHtml += buildSeatHtml(seatMap[s] || { seat_number: s, occupied: false }, "south");
+      }
+      southContainer.innerHTML = southHtml;
+    }
+
+    function getScoutAvatarForName(name) {
+      if (!name) return null;
+      const norm = name.trim().toLowerCase().replace(/^(captain|commander|section commander|cadet|lord)\s+/, "");
+      const map = {
+        "eren": "/images/characters/eren-yeager.webp",
+        "eren yeager": "/images/characters/eren-yeager.webp",
+        "mikasa": "/images/characters/mikasa-ackerman.webp",
+        "mikasa ackerman": "/images/characters/mikasa-ackerman.webp",
+        "armin": "/images/characters/armin-arlert.webp",
+        "armin arlert": "/images/characters/armin-arlert.webp",
+        "levi": "/images/characters/levi-ackerman.webp",
+        "levi ackerman": "/images/characters/levi-ackerman.webp",
+        "erwin": "/images/characters/erwin-smith.webp",
+        "erwin smith": "/images/characters/erwin-smith.webp",
+        "hange": "/images/characters/hange-zoe.webp",
+        "hange zoe": "/images/characters/hange-zoe.webp",
+        "hange zoë": "/images/characters/hange-zoe.webp",
+        "reiner": "/images/characters/reiner-braun.webp",
+        "reiner braun": "/images/characters/reiner-braun.webp",
+        "bertolt": "/images/characters/bertholt-hoover.webp",
+        "bertholt": "/images/characters/bertholt-hoover.webp",
+        "bertholt hoover": "/images/characters/bertholt-hoover.webp",
+        "annie": "/images/characters/annie-leonhart.webp",
+        "annie leonhart": "/images/characters/annie-leonhart.webp",
+        "sasha": "/images/characters/sasha-blouse.webp",
+        "sasha blouse": "/images/characters/sasha-blouse.webp",
+        "sasha braus": "/images/characters/sasha-blouse.webp",
+        "jean": "/images/characters/jean-kirstein.webp",
+        "jean kirstein": "/images/characters/jean-kirstein.webp",
+        "connie": "/images/characters/connie-springer.webp",
+        "connie springer": "/images/characters/connie-springer.webp",
+        "historia": "/images/characters/historia.webp",
+        "historia reiss": "/images/characters/historia.webp",
+        "krista": "/images/characters/krista-lenz.webp",
+        "krista lenz": "/images/characters/krista-lenz.webp",
+        "ymir": "/images/characters/ymir.webp",
+        "petra": "/images/characters/petra-ral.webp",
+        "petra ral": "/images/characters/petra-ral.webp",
+        "eld": "/images/characters/eld-jinn.webp",
+        "eld jinn": "/images/characters/eld-jinn.webp",
+        "gunther": "/images/characters/gunther-schultz.webp",
+        "gunther schultz": "/images/characters/gunther-schultz.webp",
+        "oluo": "/images/characters/oluo-bozad.webp",
+        "oluo bozad": "/images/characters/oluo-bozad.webp",
+        "moblit": "/images/characters/moblit-berner.webp",
+        "moblit berner": "/images/characters/moblit-berner.webp",
+        "mike": "/images/characters/mike-zacharias.webp",
+        "mike zacharias": "/images/characters/mike-zacharias.webp",
+        "nanaba": "/images/characters/nanaba.webp",
+        "gelgar": "/images/characters/gelgar.webp",
+        "henning": "/images/characters/henning.webp",
+        "lynne": "/images/characters/lynne.webp",
+        "dita": "/images/characters/dita-ness.webp",
+        "dita ness": "/images/characters/dita-ness.webp",
+        "luke": "/images/characters/luke-siss.webp",
+        "luke siss": "/images/characters/luke-siss.webp",
+        "dieter": "/images/characters/dieter.webp",
+        "furlan": "/images/characters/furlan-church.webp",
+        "furlan church": "/images/characters/furlan-church.webp",
+        "isabel": "/images/characters/isabel-magnolia.webp",
+        "isabel magnolia": "/images/characters/isabel-magnolia.webp",
+        "ilse": "/images/characters/ilse-langnar.webp",
+        "ilse langnar": "/images/characters/ilse-langnar.webp",
+        "pixis": "/images/characters/dot-pixis.webp",
+        "dot pixis": "/images/characters/dot-pixis.webp",
+        "hannes": "/images/characters/hannes.webp",
+        "rico": "/images/characters/rico-brzenska.webp",
+        "rico brzenska": "/images/characters/rico-brzenska.webp",
+        "ian": "/images/characters/ian-dietrich.webp",
+        "ian dietrich": "/images/characters/ian-dietrich.webp",
+        "mitabi": "/images/characters/mitabi-jarnach.webp",
+        "mitabi jarnach": "/images/characters/mitabi-jarnach.webp",
+        "kitz": "/images/characters/kitz-weilman.webp",
+        "kitz weilman": "/images/characters/kitz-weilman.webp",
+        "gustav": "/images/characters/gustav.webp",
+        "nile": "/images/characters/nile-dok.webp",
+        "nile dok": "/images/characters/nile-dok.webp",
+        "hitch": "/images/characters/hitch-dreyse.webp",
+        "hitch dreyse": "/images/characters/hitch-dreyse.webp",
+        "marlowe": "/images/characters/marlowe-freudenberg.webp",
+        "marlowe freudenberg": "/images/characters/marlowe-freudenberg.webp",
+      };
+      if (map[norm]) return map[norm];
+      for (const [key, val] of Object.entries(map)) {
+        if (norm === key || norm.includes(key)) return val;
+      }
+      return null;
+    }
+
+    function buildSeatHtml(seat, side) {
+      const sNum = seat.seat_number;
+      const isOcc = seat.occupied;
+
+      if (!isOcc) {
+        // Empty Chair
+        const bubbleHtml = `
+          <div class="seat-bubble-empty">
+            <span>🪑 Empty Seat</span>
+          </div>
+        `;
+        const chairHtml = `
+          <div class="chair-graphic empty-chair" title="Chair #${sNum} (Available)">
+            <div class="chair-backrest"></div>
+            <div class="chair-seat-cushion">#${sNum}</div>
+          </div>
+        `;
+        return `
+          <div class="seat-col" id="seatCol_${sNum}">
+            ${side === "north" ? bubbleHtml + chairHtml : chairHtml + bubbleHtml}
+          </div>
+        `;
+      }
+
+      // Occupied Seat
+      const statusBadge = seat.status_badge || "ready";
+      const actionLabel = seat.action_label || (seat.is_dessert ? "Savoring Dessert 🍰" : "Sipping Matcha 🍵");
+      const timerText = seat.seconds_remaining > 0 ? `${seat.seconds_remaining}s left` : "Leaving...";
+
+      // User requirement: Customer name and character avatar must strictly match
+      const bubbleHtml = `
+        <div class="seat-bubble-card">
+          <div class="bubble-cust-name">${escapeHtml(seat.customer_name)}</div>
+          <div class="bubble-item" title="${escapeHtml(seat.drink_name)}">${escapeHtml(seat.drink_name)}</div>
+          <div><span class="bubble-action ${statusBadge}">${actionLabel}</span></div>
+          <div class="bubble-timer">⏱️ ${timerText}</div>
+          <div class="${side === "north" ? "bubble-arrow-down" : "bubble-arrow-up"}"></div>
+        </div>
+      `;
+
+      // Guarantee customer name matches character image
+      const matchedAvatar = getScoutAvatarForName(seat.customer_name);
+      const avatarImg = matchedAvatar || seat.image || (seat.character_id ? `/images/characters/${seat.character_id}.webp` : "/images/characters/eren-yeager.webp");
+      const chairHtml = `
+        <div class="chair-graphic occupied-chair" title="${escapeHtml(seat.customer_name)} (Seat #${sNum})">
+          <img src="${avatarImg}" class="chair-avatar-img" alt="${escapeHtml(seat.customer_name)}" onerror="this.onerror=null;this.src='/images/characters/eren.webp';" />
+          <div class="chair-seat-number">#${sNum}</div>
+        </div>
+      `;
+
+      return `
+        <div class="seat-col occupied" id="seatCol_${sNum}">
+          ${side === "north" ? bubbleHtml + chairHtml : chairHtml + bubbleHtml}
+        </div>
+      `;
+    }
+
+    function render2DPlacemats(seats) {
+      const container = document.getElementById("tablePlacematsGrid");
+      if (!container) return;
+
+      const seatMap = {};
+      seats.forEach(s => { seatMap[s.seat_number] = s; });
+
+      let html = "";
+      for (let s = 1; s <= 12; s++) {
+        const seat = seatMap[s] || { seat_number: s, occupied: false };
+        if (!seat.occupied) {
+          html += `
+            <div class="table-placemat empty-placemat" title="Seat #${s} Setting">
+              <div class="wood-coaster"></div>
+            </div>
+          `;
+        } else {
+          const itemIcon = seat.is_dessert ? "🍰" : "🍵";
+          const itemClass = seat.is_dessert ? "artisan-plate" : "steaming-cup";
+          html += `
+            <div class="table-placemat active-placemat" title="Seat #${s}: ${escapeHtml(seat.drink_name)}">
+              <div class="${itemClass}">
+                <span class="item-emoji">${itemIcon}</span>
+                ${!seat.is_dessert ? '<span class="steam-float">~</span>' : ''}
+              </div>
+            </div>
+          `;
+        }
+      }
+      container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    async function orderForSeat(seatNumber, charName, drinkName) {
+      try {
+        const res = await fetch("/restaurant/order-seat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seat_number: seatNumber, character_name: charName, drink_name: drinkName })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showQuoteToast(
+            charName,
+            "Matcha Order Dispatched!",
+            `“Ceremonial ${drinkName} ordered for Seat #${seatNumber}! Whisking now at the counter.”`,
+            `/images/characters/${charName.toLowerCase().split(" ")[0]}.webp`
+          );
+          pollActiveDiners();
+        } else {
+          alert(data.detail || "Could not place order for seat");
+        }
+      } catch (err) {
+        console.error("Seat order failed:", err);
+      }
+    }
+
+    async function triggerScoutRush(defaultCount = 5) {
+      const btn = document.getElementById("btnScoutRush");
+      const available = window._availableSeats !== undefined ? window._availableSeats : defaultCount;
+
+      if (available <= 0) {
+        showQuoteToast(
+          "Captain Levi",
+          "Special Operations Squad",
+          "“The table is full (12/12). No one eats standing up in this mess hall — wait for seats to clear.”",
+          "/images/characters/levi.webp"
+        );
+        return;
+      }
+
+      const countToOrder = Math.min(defaultCount, available);
+      const origHtml = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add("btn-loading");
+        btn.innerHTML = `<span class="rush-icon spin">⚔️</span> Calling ${countToOrder} Scout${countToOrder > 1 ? 's' : ''}...`;
+      }
+      await ensureAudioContextRunning();
+      playScoutFanfare();
+      try {
+        const res = await fetch(`/restaurant/simulate-rush?count=${countToOrder}`, { method: "POST" });
+        const data = await res.json();
+
+        if (data.count === 0) {
+          showQuoteToast(
+            "Captain Levi",
+            "Special Operations Squad",
+            data.message || "“Mess hall is full. Wait for seats to clear.”",
+            "/images/characters/levi.webp"
+          );
+        } else {
+          // Random inspirational quote from Scout leadership / veterans
+          const quotes = [
+            {
+              name: "Erwin Smith",
+              title: "Commander of Survey Corps",
+              quote: `“Dedicate your hearts! ${data.count} Scouts have arrived for rations — keep the ceremonial matcha flowing!”`,
+              img: "/images/characters/erwin.webp"
+            },
+            {
+              name: "Captain Levi",
+              title: "Special Operations Squad",
+              quote: "“Don't spill a single drop on the clean mess table. Enjoy your matcha, cadets.”",
+              img: "/images/characters/levi.webp"
+            },
+            {
+              name: "Hange Zoë",
+              title: "Survey Corps Commander",
+              quote: "“Incredible! The antioxidant properties of ceremonial Uji matcha are simply astonishing!”",
+              img: "/images/characters/hange-zoe.webp"
+            },
+            {
+              name: "Sasha Braus",
+              title: "104th Training Corps",
+              quote: "“Matcha Basque Cheesecake and artisan pastries?! Quick, grab the open seats!”",
+              img: "/images/characters/sasha-blouse.webp"
+            }
+          ];
+          const q = quotes[Math.floor(Math.random() * quotes.length)];
+          showQuoteToast(q.name, q.title, q.quote, q.img);
+        }
+
+        // Immediate live table refresh
+        await pollActiveDiners();
+      } catch (err) {
+        console.error("Rush failed:", err);
+      } finally {
+        setTimeout(() => {
+          if (btn) {
+            btn.classList.remove("btn-loading");
+            btn.innerHTML = origHtml;
+            pollActiveDiners();
+          }
+        }, 1200);
+      }
+    }
+
+    function showQuoteToast(name, title, quote, avatar) {
+      const toast = document.getElementById("quoteToast");
+      if (!toast) return;
+
+      const img = document.getElementById("quoteToastImg");
+      if (img) {
+        img.src = avatar;
+        img.onerror = () => { img.src = "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>"; };
+      }
+
+      const nameEl = document.getElementById("quoteToastName");
+      if (nameEl) nameEl.innerText = name;
+
+      const titleEl = document.getElementById("quoteToastTitle");
+      if (titleEl) titleEl.innerText = title;
+
+      const textEl = document.getElementById("quoteToastText");
+      if (textEl) textEl.innerText = quote.startsWith('"') ? quote : `"${quote}"`;
+
+      toast.style.display = "block";
+
+      if (quoteToastTimer) clearTimeout(quoteToastTimer);
+      quoteToastTimer = setTimeout(closeQuoteToast, 6000);
+    }
+
+    function closeQuoteToast() {
+      const toast = document.getElementById("quoteToast");
+      if (toast) toast.style.display = "none";
+    }
+
+    /* --------------------------------------------------------
+       LOG ANALYTICS (MINUTES / HOURS / DAYS) LOGIC
+       -------------------------------------------------------- */
+    async function loadAnalytics(timeframe) {
+      currentAnalyticsTimeframe = timeframe || "minutes";
+
+      // Toggle Timeframe Filter Buttons
+      const btnMin = document.getElementById("btnTfMinutes");
+      const btnHr = document.getElementById("btnTfHours");
+      const btnDay = document.getElementById("btnTfDays");
+
+      if (btnMin) btnMin.classList.toggle("active", currentAnalyticsTimeframe === "minutes");
+      if (btnHr) btnHr.classList.toggle("active", currentAnalyticsTimeframe === "hours");
+      if (btnDay) btnDay.classList.toggle("active", currentAnalyticsTimeframe === "days");
+
+      try {
+        const res = await fetch(`/analytics?timeframe=${currentAnalyticsTimeframe}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update 6 KPI Cards
+        const kpiOrders = document.getElementById("kpiTotalOrders");
+        if (kpiOrders) kpiOrders.innerText = data.total_orders;
+
+        const kpiRev = document.getElementById("kpiTotalRevenue");
+        if (kpiRev) kpiRev.innerText = `$${Number(data.total_revenue || 0).toFixed(2)}`;
+
+        const kpiAvg = document.getElementById("kpiAvgPrep");
+        if (kpiAvg) kpiAvg.innerText = `${Number(data.avg_prep_time_sec || 0).toFixed(1)}s`;
+
+        const kpiActive = document.getElementById("kpiActiveOrders");
+        if (kpiActive) kpiActive.innerText = data.active_orders;
+
+        const kpiCirc = document.getElementById("kpiCirculationCups");
+        if (kpiCirc) kpiCirc.innerText = `${data.cups_in_circulation} / 12`;
+
+        const kpiClean = document.getElementById("kpiCleanCups");
+        const cleanCount = (data.cup_counts && data.cup_counts.CLEAN_ON_SHELF !== undefined)
+          ? data.cup_counts.CLEAN_ON_SHELF
+          : (12 - data.cups_in_circulation);
+        if (kpiClean) kpiClean.innerText = `${cleanCount} / 12`;
+
+        // Update Subtitles & Headers
+        const subTitle = document.getElementById("analyticsSubtitle");
+        if (subTitle) subTitle.innerText = `Aggregated audit events, cup lifecycle telemetry & consumer throughput for: ${data.time_label}`;
+
+        const streamBadge = document.getElementById("streamSourceBadge");
+        if (streamBadge) {
+          if (data.stream_powered) {
+            streamBadge.style.display = "inline-flex";
+            streamBadge.innerHTML = `⚡ <strong>Engine:</strong> ${escapeHtml(data.data_source || 'Kafka Streams (Quix Streams)')}`;
+          } else {
+            streamBadge.style.display = "none";
+          }
+        }
+
+        const chartLabel = document.getElementById("chartTimeLabel");
+        if (chartLabel) chartLabel.innerText = data.time_label;
+
+        const chartBadge = document.getElementById("chartTimeBadge");
+        if (chartBadge) chartBadge.innerText = `${data.chart_series ? data.chart_series.length : 0} Data Points`;
+
+        // Render Dynamic CSS Timeseries Bar Chart
+        renderTimeseriesChart(data.chart_series || []);
+
+        // Render Cup Lifecycle Audit Events Table
+        rawAuditEvents = data.audit_events || [];
+        renderAuditTable(rawAuditEvents);
+
+        // Render Popular Items & Customer Leaderboard
+        renderPopularItems(data.popular_items || []);
+        renderLeaderboard(data.customer_leaderboard || []);
+      } catch (err) {
+        console.error("Failed to load analytics:", err);
+      }
+    }
+
+    function renderTimeseriesChart(series) {
+      const container = document.getElementById("timeseriesChart");
+      if (!container) return;
+
+      if (!series || series.length === 0) {
+        container.innerHTML = `<div style="margin: auto; color: var(--text-muted); font-size: 0.85rem;">No activity recorded in this period yet.</div>`;
+        return;
+      }
+
+      const is24Hours = series.length > 16;
+      container.style.gap = is24Hours ? "3px" : "8px";
+
+      const orderCounts = series.map(s => Number(s.orders) || 0);
+      const maxOrders = Math.max(...orderCounts, 1);
+      const totalPeriodOrders = orderCounts.reduce((a, b) => a + b, 0);
+      const totalPeriodRev = series.reduce((a, b) => a + Number(b.revenue || 0), 0);
+
+      // Update badge in chart card header
+      defaultChartBadgeHtml = `📊 <strong>${totalPeriodOrders}</strong> orders • <strong>$${totalPeriodRev.toFixed(2)}</strong>`;
+      const chartBadge = document.getElementById("chartTimeBadge");
+      if (chartBadge) {
+        chartBadge.innerHTML = defaultChartBadgeHtml;
+      }
+
+      container.innerHTML = series.map((pt, idx) => {
+        const orders = Number(pt.orders) || 0;
+        const rev = Number(pt.revenue) || 0;
+        const hasOrders = orders > 0;
+        // Scale between 15% and 88% height when orders > 0, flat baseline for 0 orders
+        const heightPercent = hasOrders ? Math.round(15 + (orders / maxOrders) * 73) : 3;
+
+        // In 24h mode, alternate labels (every 2 hours) to prevent overlap or horizontal scrolling
+        const showLabel = !is24Hours || (idx % 2 === 0) || (idx === series.length - 1);
+        const labelContent = showLabel ? pt.time : '<span style="color: #CBD5E1; font-size: 0.6rem;">·</span>';
+
+        return `
+          <div class="chart-bar-wrap"
+               onmouseenter="showChartTooltip(event, '${pt.time}', ${orders}, ${rev})"
+               onmousemove="positionChartTooltip(event)"
+               onmouseleave="hideChartTooltip()">
+            ${hasOrders ? `<div class="chart-pill">${orders}</div>` : `<div class="chart-pill-empty">·</div>`}
+            <div class="chart-bar ${hasOrders ? 'has-orders' : 'no-orders'}" style="height: ${heightPercent}%;"></div>
+            <div class="chart-bar-label">${labelContent}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    let defaultChartBadgeHtml = "";
+
+    function showChartTooltip(event, time, orders, rev) {
+      let tip = document.getElementById("chartFloatingTooltip");
+      if (!tip) {
+        tip = document.createElement("div");
+        tip.id = "chartFloatingTooltip";
+        tip.className = "chart-floating-tooltip";
+        document.body.appendChild(tip);
+      }
+
+      tip.innerHTML = `
+        <div style="font-weight: 700; color: #81B96F; font-size: 0.74rem; margin-bottom: 3px;">⏰ ${time}</div>
+        <div style="font-size: 0.76rem; color: #FFFFFF;">📦 <strong>${orders}</strong> ${orders === 1 ? 'order' : 'orders'}</div>
+        <div style="font-size: 0.74rem; color: #E0E7DE;">💰 <strong>$${Number(rev).toFixed(2)}</strong> revenue</div>
+      `;
+
+      tip.style.display = "block";
+      tip.style.opacity = "1";
+      positionChartTooltip(event);
+
+      const chartBadge = document.getElementById("chartTimeBadge");
+      if (chartBadge) {
+        chartBadge.innerHTML = `🔍 <strong>${time}</strong>: ${orders} ${orders === 1 ? 'order' : 'orders'} • $${Number(rev).toFixed(2)}`;
+      }
+    }
+
+    function positionChartTooltip(event) {
+      const tip = document.getElementById("chartFloatingTooltip");
+      if (!tip || tip.style.display === "none") return;
+
+      const tipRect = tip.getBoundingClientRect();
+      const margin = 12;
+      let x = event.clientX - (tipRect.width / 2);
+      let y = event.clientY - tipRect.height - margin;
+
+      // Smart flip below if too close to viewport top edge
+      if (y < 12) {
+        y = event.clientY + margin + 10;
+      }
+
+      // Ensure inside viewport horizontally
+      if (x < 12) x = 12;
+      if (x + tipRect.width > window.innerWidth - 12) {
+        x = window.innerWidth - tipRect.width - 12;
+      }
+
+      tip.style.left = `${x}px`;
+      tip.style.top = `${y}px`;
+    }
+
+    function hideChartTooltip() {
+      const tip = document.getElementById("chartFloatingTooltip");
+      if (tip) {
+        tip.style.opacity = "0";
+        tip.style.display = "none";
+      }
+      const chartBadge = document.getElementById("chartTimeBadge");
+      if (chartBadge && defaultChartBadgeHtml) {
+        chartBadge.innerHTML = defaultChartBadgeHtml;
+      }
+    }
+
+    function renderAuditTable(events) {
+      const tbody = document.getElementById("auditTableBody");
+      if (!tbody) return;
+
+      if (!events || events.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No audit events recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = events.map(e => {
+        const toStatus = e.new_status || e.to_status || "CLEAN_ON_SHELF";
+        const fromStatus = e.previous_status || e.from_status || "—";
+        const actor = e.trigger_event || e.actor || "Café System";
+        const timeStr = e.timestamp || e.created_at || (e.date ? `${e.date} ${e.created_at}` : "—");
+        const orderId = e.order_id && e.order_id !== "—" ? e.order_id : "—";
+
+        const pillClass = toStatus === "CLEAN_ON_SHELF" ? "clean" :
+                          (toStatus === "IN_BREWING" ? "brewing" :
+                          (toStatus === "WITH_CUSTOMER" ? "customer" : "dishwasher"));
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-size: 0.76rem; color: var(--text-muted);">${timeStr}</td>
+            <td><strong style="color: var(--primary-dark); font-family: monospace; font-size: 0.82rem;">${e.cup_code || '—'}</strong></td>
+            <td><span style="color: var(--text-light); font-size: 0.74rem;">${fromStatus}</span></td>
+            <td><span class="status-pill-mini ${pillClass}">${toStatus}</span></td>
+            <td style="font-weight: 600; color: var(--text-main); font-size: 0.78rem;">${actor}</td>
+            <td style="font-family: monospace; font-size: 0.75rem; color: #7A5515;">${orderId}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function filterAuditLogs() {
+      const input = document.getElementById("auditSearchInput");
+      const q = (input ? input.value : "").toLowerCase().trim();
+      if (!q) {
+        renderAuditTable(rawAuditEvents);
+        return;
+      }
+      const filtered = rawAuditEvents.filter(e => {
+        const cup = (e.cup_code || "").toLowerCase();
+        const toSt = (e.new_status || e.to_status || "").toLowerCase();
+        const fromSt = (e.previous_status || e.from_status || "").toLowerCase();
+        const act = (e.trigger_event || e.actor || "").toLowerCase();
+        const ord = (e.order_id || "").toLowerCase();
+        return cup.includes(q) || toSt.includes(q) || fromSt.includes(q) || act.includes(q) || ord.includes(q);
+      });
+      renderAuditTable(filtered);
+    }
+
+    function renderPopularItems(items) {
+      const container = document.getElementById("popularItemsList");
+      if (!container) return;
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `<p style="font-size: 0.8rem; color: var(--text-muted);">No sales data available yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = items.map((it, idx) => {
+        const itemName = it.name || it.drink_name || "Matcha Drink";
+        const itemCount = it.count !== undefined ? it.count : (it.order_count || 0);
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #FAFBF9; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 800; color: var(--matcha); font-size: 0.82rem;">#${idx + 1}</span>
+              <span style="font-weight: 600; font-size: 0.84rem; color: var(--primary-dark);">${itemName}</span>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-weight: 700; font-size: 0.82rem; color: var(--text-main);">${itemCount} orders</span>
+              <span style="font-size: 0.74rem; color: var(--text-light); margin-left: 6px;">($${Number(it.revenue || 0).toFixed(2)})</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderLeaderboard(customers) {
+      const container = document.getElementById("customerLeaderboardList");
+      if (!container) return;
+
+      if (!customers || customers.length === 0) {
+        container.innerHTML = `<p style="font-size: 0.8rem; color: var(--text-muted);">No customer records yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = customers.map((c, idx) => {
+        const medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : "👤"));
+        const custName = c.name || c.customer_name || "Loyal Guest";
+        const orderCount = c.total_orders !== undefined ? c.total_orders : (c.order_count || 0);
+        const spentStr = c.total_spent ? ` • $${Number(c.total_spent).toFixed(2)}` : "";
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: #FAFBF9; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>${medal}</span>
+              <span style="font-weight: 700; font-size: 0.84rem; color: var(--primary-dark);">${custName}</span>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-weight: 700; font-size: 0.82rem; color: var(--matcha);">${orderCount} visits</span>
+              <span style="font-size: 0.72rem; color: var(--text-light); margin-left: 4px;">${spentStr}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  </script>
+
+  <!-- Attack on Titan Character Quote Dialogue Toast -->
+  <div id="quoteToast" class="quote-toast">
+    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 8px;">
+      <img id="quoteToastImg" src="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #C5A059;" alt="" />
+      <div>
+        <div id="quoteToastName" style="font-family: 'Cinzel', Georgia, serif; font-size: 0.95rem; font-weight: 700; color: #F4D06F;"></div>
+        <div id="quoteToastTitle" style="font-size: 0.72rem; color: #B8B0A2;"></div>
+      </div>
+    </div>
+    <p id="quoteToastText" style="font-size: 0.84rem; line-height: 1.4; color: #EDE8DE; font-style: italic;"></p>
+    <div style="text-align: right; margin-top: 8px;">
+      <button onclick="closeQuoteToast()" style="background: none; border: none; color: #C5A059; font-size: 0.72rem; cursor: pointer; text-decoration: underline;">Dismiss</button>
+    </div>
+  </div>
+</body>
+</html>
